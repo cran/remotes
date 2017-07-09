@@ -3,6 +3,10 @@
 
 `%:::%` <- function (p, f) get(f, envir = asNamespace(p))
 
+viapply <- function(X, FUN, ..., USE.NAMES = TRUE) {
+  vapply(X, FUN, integer(1L), ..., USE.NAMES = USE.NAMES)
+}
+
 is_bioconductor <- function(x) {
   !is.null(x$biocviews)
 }
@@ -46,6 +50,14 @@ pkg_installed <- function(pkg) {
     TRUE
   } else {
     FALSE
+  }
+}
+
+has_package <- function(pkg) {
+  if (pkg %in% loadedNamespaces()) {
+    TRUE
+  } else {
+    requireNamespace(pkg, quietly = TRUE)
   }
 }
 
@@ -102,4 +114,16 @@ sys_type <- function() {
   } else {
     stop("Unknown OS")
   }
+}
+
+is_dir <- function(path) {
+  file.info(path)$isdir
+}
+
+untar_description <- function(tarball, dir = tempfile()) {
+  files <- untar(tarball, list = TRUE)
+  desc <- grep("^[^/]+/DESCRIPTION$", files, value = TRUE)
+  if (length(desc) < 1) stop("No 'DESCRIPTION' file in package")
+  untar(tarball, desc, exdir = dir)
+  file.path(dir, desc)
 }

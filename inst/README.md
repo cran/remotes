@@ -1,40 +1,64 @@
 
 # remotes
 
-> Install R Packages from 'GitHub', 'BitBucket', or other local or remote repositories
+> Install R Packages from GitHub, BitBucket, or other local or remote
+> repositories
 
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
-[![Linux Build Status](https://travis-ci.org/MangoTheCat/remotes.svg?branch=master)](https://travis-ci.org/MangoTheCat/remotes)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/github/MangoTheCat/remotes?svg=true)](https://ci.appveyor.com/project/gaborcsardi/remotes)
-[![](http://www.r-pkg.org/badges/version/remotes)](http://www.r-pkg.org/pkg/remotes)
-[![CRAN RStudio mirror downloads](http://cranlogs.r-pkg.org/badges/remotes)](http://www.r-pkg.org/pkg/remotes)
-[![Coverage Status](https://img.shields.io/codecov/c/github/MangoTheCat/remotes/master.svg)](https://codecov.io/github/MangoTheCat/remotes?branch=master)
+[![Linux Build Status](https://travis-ci.org/r-lib/remotes.svg?branch=master)](https://travis-ci.org/r-lib/remotes)
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/github/r-lib/remotes?svg=true)](https://ci.appveyor.com/project/gaborcsardi/remotes)
+[![](https://www.r-pkg.org/badges/version/remotes)](https://www.r-pkg.org/pkg/remotes)
+[![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/remotes)](https://www.r-pkg.org/pkg/remotes)
+[![Coverage Status](https://img.shields.io/codecov/c/github/r-lib/remotes/master.svg)](https://codecov.io/github/r-lib/remotes?branch=master)
 
-Download and install R packages stored in 'GitHub',
-'BitBucket', or plain 'subversion' or 'git' repositories. This package
-is a lightweight replacement of the 'install_*' functions in
-[devtools](https://github.com/hadley/devtools).
-Indeed most of the code was copied over from 'devtools'.
+Download and install R packages stored in GitHub,
+BitBucket, or plain subversion or git repositories. This package
+is a lightweight replacement of the `install_*` functions in
+[`devtools`](https://github.com/hadley/devtools).
+Indeed most of the code was copied over from `devtools`.
 
-`remotes` can install itself from GitHub, it does not depend on any R
-package, it does not contain compiled code, and does not need any
-external software (for most of the functionality at least).
+## Features
+
+* Installers:
+    * Install packages with their dependencies.
+    * Install from GitHub, BitBucket.
+	* Install from git and subversion repositories.
+	* Install from local files or URLs.
+	* Install the dependencies of a local package tree.
+	* Install specific package versions from CRAN.
+* Supports [BioConductor](https://bioconductor.org/) packages.
+* Supports the `Remotes` field in `DESCRIPTION`. See more
+  [here](https://github.com/hadley/devtools/blob/master/vignettes/dependencies.Rmd).
+* Supports the `Additional_repositories` in `DESCRIPTION`.
+* Can install itself from GitHub (see below).
+* Does not depend on other R packages.
+* Does not contain compiled code, so no compiler is needed.
+* Does not need any external software (for most of the functionality
+  at least).
 
 ## Installation
 
 You can install `remotes` from GitHub. If you already have a previous
 version of `remotes` installed, you can use that to install the new
-versions:
+version:
 
 ```r
-remotes::install_github("mangothecat/remotes")
+remotes::install_github("r-lib/remotes")
 ```
 
-Otherwise you can call the supplied `install-github.R`
-file directly, from within R:
+You can also call the supplied `install-github.R` file directly, from
+within R:
 
 ```r
-source("https://raw.githubusercontent.com/MangoTheCat/remotes/master/install-github.R")$value("mangothecat/remotes")
+source("https://raw.githubusercontent.com/r-lib/remotes/master/install-github.R")$value("r-lib/remotes")
+```
+
+The `https://install-github.me` service is also based on `remotes`.
+You can use it to install any R package from GitHub via sourcing a URL.
+E.g. to install `remotes` itself:
+
+```r
+source("https://install-github.me/r-lib/remotes")
 ```
 
 ## Usage
@@ -85,9 +109,9 @@ outdated dependencies are automatically upgraded.
 
 #### Dependencies on GitHub
 
-It is also possible to install dependencies from GitHub. For this
-you need to add a `Remotes` field to the `DESCRIPTION` file.
-Its format is:
+It is also possible to install dependencies from GitHub or other
+supported repositories. For this you need to add a `Remotes` field to the
+`DESCRIPTION` file. Its format is:
 ```
 Remotes: [remote::]repo_spec, [remote::]repo_spec, ...
 ```
@@ -95,6 +119,9 @@ where `repo_spec` is any repository specification `install_github`
 can handle. If `remote::` is missing, `github::` is assumed.
 Other possible values: `bitbucket::`, `git::`, `local::`,
 `svn::`, `url::`, `version::`.
+
+See more about the `Remotes` field in this
+[vignette](https://github.com/hadley/devtools/blob/master/vignettes/dependencies.Rmd).
 
 #### Additional repositories
 
@@ -127,6 +154,18 @@ installed temporarily.
   and archived packages as well.
 * All dependencies of a package in a local directory via
   `install_deps`.
+
+### Download methods
+
+* For R older the 3.2, `curl` package is required as `remotes` fallbacks to
+`curl::curl_download` in that case
+* For R newer than 3.3, default `download.file` method is used. (`method = "auto"`)
+* For in between versions,
+    * `method = "wininet"` is used on windows OS
+    * `method = "libcurl"` is used on other OS, if available.
+
+See `help("download.file")` for informations on these methods and for
+setting proxies if needed.
 
 ### Notes
 

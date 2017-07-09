@@ -1,9 +1,9 @@
 Package: remotes
 Title: R Package Installation from Remote Repositories, Including
         'GitHub'
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: c(
-    person("Gabor", "Csardi", , "gcsardi@mango-solutions.com", role = c("aut", "cre")),
+    person("Gábor", "Csárdi", , "csardi.gabor@gmail.com", role = c("aut", "cre")),
     person("Hadley", "Wickham", role = c("aut")),
     person("Winston", "Chang", role = "aut"),
     person("Jim", "Hester", role = "aut"),
@@ -12,22 +12,22 @@ Authors@R: c(
     person("Dan", "Tenenbaum", role = "aut"),
     person("Mango Solutions", role = "cph")
     )
-Maintainer: Gabor Csardi <gcsardi@mango-solutions.com>
 Description: Download and install R packages stored in 'GitHub',
     'BitBucket', or plain 'subversion' or 'git' repositories. This package
     is a lightweight replacement of the 'install_*' functions in 'devtools'.
     Indeed most of the code was copied over from 'devtools'.
 License: GPL (>= 2)
-URL: https://github.com/mangothecat/remotes
-BugReports: https://github.com/mangothecat/remotes/issues
+URL: https://github.com/r-lib/remotes#readme
+BugReports: https://github.com/r-lib/remotes/issues
 Imports: methods, utils
 Suggests: curl, git2r, pingr, testthat
 Depends: R (>= 3.0.0)
-RoxygenNote: 5.0.1.9000
+RoxygenNote: 6.0.1
 SystemRequirements: Subversion for install_svn, git for install_git
+Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2016-09-09 22:20:06 UTC; gaborcsardi
-Author: Gabor Csardi [aut, cre],
+Packaged: 2017-07-09 20:37:34 UTC; gaborcsardi
+Author: Gábor Csárdi [aut, cre],
   Hadley Wickham [aut],
   Winston Chang [aut],
   Jim Hester [aut],
@@ -35,5 +35,6 @@ Author: Gabor Csardi [aut, cre],
   Martin Morgan [aut],
   Dan Tenenbaum [aut],
   Mango Solutions [cph]
+Maintainer: Gábor Csárdi <csardi.gabor@gmail.com>
 Repository: CRAN
-Date/Publication: 2016-09-10 01:54:30
+Date/Publication: 2017-07-09 21:52:32 UTC

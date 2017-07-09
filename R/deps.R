@@ -7,7 +7,7 @@
 #' \code{update()} method installs outdated or missing packages from CRAN.
 #'
 #' @param packages A character vector of package names.
-#' @param pkgdir path to a package directory.
+#' @param pkgdir path to a package directory, or to a package tarball.
 #' @param dependencies Which dependencies do you want to check?
 #'   Can be a character vector (selecting from "Depends", "Imports",
 #'    "LinkingTo", "Suggests", or "Enhances"), or a logical vector.
@@ -55,10 +55,7 @@ package_deps <- function(packages, dependencies = NA,
     type <- "binary"
   }
 
-  if (length(repos) == 0)
-    repos <- character()
-
-  repos[repos == "@CRAN@"] <- "http://cran.rstudio.com"
+  repos <- fix_repositories(repos)
   cran <- available_packages(repos, type)
 
   deps <- sort(find_deps(packages, cran, top_dep = dependencies))
@@ -197,12 +194,13 @@ dev_remote_type <- function(remotes = "") {
       stop("Malformed remote specification '", x, "'", call. = FALSE)
     }
     tryCatch(
-      fun <- get(x = paste0("install_", tolower(type)),
-        envir = asNamespace("remotes"),
-        mode = "function",
-        inherits = FALSE),
+      fun <- get(x = paste0("install_", tolower(type)), mode = "function"),
       error = function(e) {
-        stop("Malformed remote specification '", x, "'", call. = FALSE)
+        stop(
+          "Malformed remote specification '", x, "'",
+          ", error: ", conditionMessage(e),
+          call. = FALSE
+        )
       })
     list(repository = repo, type = type, fun = fun)
   }
@@ -364,4 +362,14 @@ parse_additional_repositories <- function(pkg) {
   if (has_additional_repositories(pkg)) {
     strsplit(pkg[["additional_repositories"]], "[,[:space:]]+")[[1]]
   }
+}
+
+fix_repositories <- function(repos) {
+  if (length(repos) == 0)
+    repos <- character()
+
+  # Override any existing default values with the cloud mirror
+  # Reason: A "@CRAN@" value would open a GUI for choosing a mirror
+  repos[repos == "@CRAN@"] <- "http://cloud.r-project.org"
+  repos
 }

@@ -45,13 +45,20 @@ base_download <- function(url, path, quiet) {
 }
 
 download_method <- function() {
-
-  if (isTRUE(unname(capabilities("libcurl")))) {
-    "libcurl"
-
-  } else if (os_type() == "windows") {
-    "wininet"
-
+  
+  # R versions newer than 3.3.0 have correct default methods
+  if (compareVersion(get_r_version(), "3.3") == -1) {
+    
+    if (os_type() == "windows") {
+      "wininet"
+      
+    } else if (isTRUE(unname(capabilities("libcurl")))) {
+      "libcurl"
+      
+    } else {
+      "auto"
+    }
+    
   } else {
     "auto"
   }
@@ -63,5 +70,5 @@ curl_download <- function(url, path, quiet) {
     stop("The 'curl' package is required if R is older than 3.2.0")
   }
 
-  curl::curl_download(url, path, quiet = quiet)
+  curl::curl_download(url, path, quiet = quiet, mode = "wb")
 }
