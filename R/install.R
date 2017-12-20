@@ -29,12 +29,18 @@ safe_install_packages <- function(...) {
 
   lib <- paste(.libPaths(), collapse = ":")
 
+  if (has_package("crancache") && has_package("callr")) {
+    i.p <- "crancache" %::% "install_packages"
+  } else {
+    i.p <- utils::install.packages
+  }
+
   with_envvar(
     c(R_LIBS = lib,
       R_LIBS_USER = lib,
       R_LIBS_SITE = lib,
       R_PROFILE_USER = tempfile()),
-    utils::install.packages(...)
+    i.p(...)
   )
 }
 
@@ -42,8 +48,8 @@ safe_install_packages <- function(...) {
 #'
 #' @inheritParams package_deps
 #' @param threads Number of threads to start, passed to
-#'   \code{install.packages} as \code{Ncpus}.
-#' @param ... additional arguments passed to \code{\link{install.packages}}.
+#'   \code{\link[utils]{install.packages}} as \code{Ncpus}.
+#' @param ... additional arguments passed to \code{\link[utils]{install.packages}}.
 #' @export
 #' @examples
 #' \dontrun{install_deps(".")}
