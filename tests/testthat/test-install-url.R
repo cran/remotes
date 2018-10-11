@@ -1,7 +1,7 @@
 
 context("Installing from URLs")
 
-test_that("", {
+test_that("install_url", {
 
   skip_on_cran()
   skip_if_offline()
@@ -11,18 +11,22 @@ test_that("", {
   lib <- tempfile()
   on.exit(unlink(lib, recursive = TRUE), add = TRUE)
   dir.create(lib)
-  libpath <- .libPaths()
-  on.exit(.libPaths(libpath), add = TRUE)
-  .libPaths(lib)
 
   url <- "https://github.com/mangothecat/simplegraph/archive/master.zip"
-  install_url(url, lib = lib)
+  install_url(url, lib = lib, quiet = TRUE)
 
   expect_silent(packageDescription("simplegraph", lib.loc = lib))
   expect_equal(
     packageDescription("simplegraph", lib.loc = lib)$RemoteType,
     "url")
   expect_equal(
-    packageDescription("simplegraph", lib.loc = lib)$RemoteUrl,
+    trim_ws(packageDescription("simplegraph", lib.loc = lib)$RemoteUrl),
     url)
+
+  remote <- package2remote("simplegraph", lib = lib)
+  expect_s3_class(remote, "remote")
+  expect_s3_class(remote, "url_remote")
+  expect_equal(format(remote), "URL")
+  expect_equal(remote$url, url)
+  expect_equal(remote$subdir, NULL)
 })

@@ -4,7 +4,12 @@
 \alias{install_svn}
 \title{Install a package from a SVN repository}
 \usage{
-install_svn(url, subdir = NULL, args = character(0), ..., revision = NULL)
+install_svn(url, subdir = NULL, args = character(0), revision = NULL,
+  dependencies = NA, upgrade = c("ask", "always", "never"),
+  force = FALSE, quiet = FALSE, build = TRUE,
+  build_opts = c("--no-resave-data", "--no-manual",
+  "--no-build-vignettes"), repos = getOption("repos"),
+  type = getOption("pkgType"), ...)
 }
 \arguments{
 \item{url}{Location of package. The url should point to a public or
@@ -16,9 +21,37 @@ package we are interested in installing.}
 \item{args}{A character vector providing extra options to pass on to
 \command{svn}.}
 
-\item{...}{Other arguments passed on to \code{\link[utils]{install.packages}}.}
-
 \item{revision}{svn revision, if omitted updates to latest}
+
+\item{dependencies}{Which dependencies do you want to check?
+Can be a character vector (selecting from "Depends", "Imports",
+"LinkingTo", "Suggests", or "Enhances"), or a logical vector.
+
+\code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
+"Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
+and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
+just check this package, not its dependencies).}
+
+\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
+which out of date packages to upgrade. For non-interactive sessions "ask" is
+equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
+correspond to "always" and "never" respectively.}
+
+\item{force}{Force installation, even if the remote state has not changed
+since the previous install.}
+
+\item{quiet}{If \code{TRUE}, suppress output.}
+
+\item{build}{If \code{TRUE} build the package before installing.}
+
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+is \code{TRUE}.}
+
+\item{repos}{A character vector giving repositories to use.}
+
+\item{type}{Type of package to \code{update}.}
+
+\item{...}{Other arguments passed on to \code{\link[utils:install.packages]{utils::install.packages()}}.}
 }
 \description{
 This function requires \command{svn} to be installed on your system in order to
@@ -30,7 +63,17 @@ a single command.
 }
 \examples{
 \dontrun{
-install_svn("svn://github.com/hadley/stringr/trunk")
-install_svn("svn://github.com/hadley/httr/branches/oauth")
+install_svn("https://github.com/hadley/stringr/trunk")
+install_svn("https://github.com/hadley/httr/branches/oauth")
 }
 }
+\seealso{
+Other package installation: \code{\link{install_bioc}},
+  \code{\link{install_bitbucket}},
+  \code{\link{install_cran}}, \code{\link{install_dev}},
+  \code{\link{install_github}},
+  \code{\link{install_gitlab}}, \code{\link{install_git}},
+  \code{\link{install_local}}, \code{\link{install_url}},
+  \code{\link{install_version}}
+}
+\concept{package installation}

@@ -1,5 +1,5 @@
 # Decompress pkg, if needed
-source_pkg <- function(path, subdir = NULL, before_install = NULL) {
+source_pkg <- function(path, subdir = NULL) {
   if (!file.info(path)$isdir) {
     bundle <- path
     outdir <- tempfile(pattern = "remotes")
@@ -23,10 +23,6 @@ source_pkg <- function(path, subdir = NULL, before_install = NULL) {
     Sys.chmod(config_path, "777")
   }
 
-  # Call before_install for bundles (if provided)
-  if (!is.null(bundle) && !is.null(before_install))
-    before_install(bundle, pkg_path)
-
   pkg_path
 }
 
@@ -37,19 +33,9 @@ decompress <- function(src, target) {
   if (grepl("\\.zip$", src)) {
     my_unzip(src, target)
     outdir <- getrootdir(as.vector(utils::unzip(src, list = TRUE)$Name))
-
-  } else if (grepl("\\.tar$", src)) {
+  } else if (grepl("\\.(tar|tar\\.gz|tar\\.bz2|tgz|tbz)$", src)) {
     untar(src, exdir = target)
     outdir <- getrootdir(untar(src, list = TRUE))
-
-  } else if (grepl("\\.(tar\\.gz|tgz)$", src)) {
-    untar(src, exdir = target, compressed = "gzip")
-    outdir <- getrootdir(untar(src, compressed = "gzip", list = TRUE))
-
-  } else if (grepl("\\.(tar\\.bz2|tbz)$", src)) {
-    untar(src, exdir = target, compressed = "bzip2")
-    outdir <- getrootdir(untar(src, compressed = "bzip2", list = TRUE))
-
   } else {
     ext <- gsub("^[^.]*\\.", "", src)
     stop("Don't know how to decompress files with extension ", ext,
@@ -74,7 +60,7 @@ getrootdir <- function(file_list) {
   getdir(file_list[which.min(slashes)])
 }
 
-my_unzip <- function(src, target, unzip = getOption("unzip")) {
+my_unzip <- function(src, target, unzip = getOption("unzip", "internal")) {
   if (unzip %in% c("internal", "")) {
     return(utils::unzip(src, exdir = target))
   }

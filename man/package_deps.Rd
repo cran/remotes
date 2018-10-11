@@ -13,37 +13,50 @@ package_deps(packages, dependencies = NA, repos = getOption("repos"),
 local_package_deps(pkgdir = ".", dependencies = NA)
 
 dev_package_deps(pkgdir = ".", dependencies = NA,
-  repos = getOption("repos"), type = getOption("pkgType"))
+  repos = getOption("repos"), type = getOption("pkgType"), ...)
 
-\method{update}{package_deps}(object, ..., quiet = FALSE, upgrade = TRUE)
+\method{update}{package_deps}(object, dependencies = NA,
+  upgrade = c("ask", "always", "never"), force = FALSE,
+  quiet = FALSE, build = TRUE, build_opts = c("--no-resave-data",
+  "--no-manual", "--no-build-vignettes"), repos = getOption("repos"),
+  type = getOption("pkgType"), ...)
 }
 \arguments{
 \item{packages}{A character vector of package names.}
 
 \item{dependencies}{Which dependencies do you want to check?
-  Can be a character vector (selecting from "Depends", "Imports",
-   "LinkingTo", "Suggests", or "Enhances"), or a logical vector.
+Can be a character vector (selecting from "Depends", "Imports",
+"LinkingTo", "Suggests", or "Enhances"), or a logical vector.
 
-  \code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
-  "Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
-  and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
-  just check this package, not its dependencies).}
+\code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
+"Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
+and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
+just check this package, not its dependencies).}
 
 \item{repos}{A character vector giving repositories to use.}
 
-\item{type}{Type of package to \code{update}.  If "both", will switch
-automatically to "binary" to avoid interactive prompts during package
-installation.}
+\item{type}{Type of package to \code{update}.}
 
 \item{pkgdir}{path to a package directory, or to a package tarball.}
 
+\item{...}{Additional arguments passed to \code{install_packages}.}
+
 \item{object}{A \code{package_deps} object.}
 
-\item{...}{Additional arguments passed to \code{install_packages}.}
+\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
+which out of date packages to upgrade. For non-interactive sessions "ask" is
+equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
+correspond to "always" and "never" respectively.}
+
+\item{force}{Force installation, even if the remote state has not changed
+since the previous install.}
 
 \item{quiet}{If \code{TRUE}, suppress output.}
 
-\item{upgrade}{If \code{TRUE}, also upgrade any of out date dependencies.}
+\item{build}{If \code{TRUE} build the package before installing.}
+
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+is \code{TRUE}.}
 }
 \value{
 A \code{data.frame} with columns:
@@ -53,8 +66,8 @@ A \code{data.frame} with columns:
 \code{installed} \tab The currently installed version,\cr
 \code{available} \tab The version available on CRAN,\cr
 \code{diff} \tab An integer denoting whether the locally installed version
-  of the package is newer (1), the same (0) or older (-1) than the version
-  currently available on CRAN.\cr
+of the package is newer (1), the same (0) or older (-1) than the version
+currently available on CRAN.\cr
 }
 }
 \description{
@@ -62,12 +75,6 @@ Find all the dependencies of a package and determine whether they are ahead
 or behind CRAN. A \code{print()} method identifies mismatches (if any)
 between local and CRAN versions of each dependent package; an
 \code{update()} method installs outdated or missing packages from CRAN.
-
-\code{local_package_deps} extracts dependencies from a
-local DESCRIPTION file.
-
-\code{dev_package_deps} lists the status of the dependencies
-of a local package.
 }
 \examples{
 \dontrun{

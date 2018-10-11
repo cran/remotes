@@ -4,8 +4,13 @@
 \alias{install_github}
 \title{Attempts to install a package directly from GitHub.}
 \usage{
-install_github(repo, username = NULL, ref = "master", subdir = NULL,
-  auth_token = github_pat(), host = "api.github.com", ...)
+install_github(repo, ref = "master", subdir = NULL,
+  auth_token = github_pat(), host = "api.github.com",
+  dependencies = NA, upgrade = c("ask", "always", "never"),
+  force = FALSE, quiet = FALSE, build = TRUE,
+  build_opts = c("--no-resave-data", "--no-manual",
+  "--no-build-vignettes"), repos = getOption("repos"),
+  type = getOption("pkgType"), ...)
 }
 \arguments{
 \item{repo}{Repository address in the format
@@ -14,11 +19,8 @@ specify \code{subdir} and/or \code{ref} using the respective parameters
 (see below); if both is specified, the values in \code{repo} take
 precedence.}
 
-\item{username}{User name. Deprecated: please include username in the
-\code{repo}}
-
 \item{ref}{Desired git reference. Could be a commit, tag, or branch
-name, or a call to \code{\link{github_pull}}. Defaults to \code{"master"}.}
+name, or a call to \code{\link[=github_pull]{github_pull()}}. Defaults to \code{"master"}.}
 
 \item{subdir}{subdirectory within repo that contains the R package.}
 
@@ -31,18 +33,43 @@ the \code{GITHUB_PAT} environment variable.}
 \item{host}{GitHub API host to use. Override with your GitHub enterprise
 hostname, for example, \code{"github.hostname.com/api/v3"}.}
 
-\item{...}{Other arguments passed on to \code{\link[utils]{install.packages}}.}
+\item{dependencies}{Which dependencies do you want to check?
+Can be a character vector (selecting from "Depends", "Imports",
+"LinkingTo", "Suggests", or "Enhances"), or a logical vector.
+
+\code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
+"Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
+and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
+just check this package, not its dependencies).}
+
+\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
+which out of date packages to upgrade. For non-interactive sessions "ask" is
+equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
+correspond to "always" and "never" respectively.}
+
+\item{force}{Force installation, even if the remote state has not changed
+since the previous install.}
+
+\item{quiet}{If \code{TRUE}, suppress output.}
+
+\item{build}{If \code{TRUE} build the package before installing.}
+
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+is \code{TRUE}.}
+
+\item{repos}{A character vector giving repositories to use.}
+
+\item{type}{Type of package to \code{update}.}
+
+\item{...}{Other arguments passed on to \code{\link[utils:install.packages]{utils::install.packages()}}.}
 }
 \description{
 This function is vectorised on \code{repo} so you can install multiple
 packages in a single command.
 }
 \details{
-Attempting to install from a source repository that uses submodules
-raises a warning. Because the zipped sources provided by GitHub do not
-include submodules, this may lead to unexpected behaviour or compilation
-failure in source packages. In this case, cloning the repository manually
-may yield better results.
+If the repository uses submodules a command-line git client is required to
+clone the submodules.
 }
 \examples{
 \dontrun{
@@ -61,5 +88,13 @@ install_github("hadley/private", auth_token = "abc")
 }
 }
 \seealso{
-\code{\link{github_pull}}
+\code{\link[=github_pull]{github_pull()}}
+
+Other package installation: \code{\link{install_bioc}},
+  \code{\link{install_bitbucket}},
+  \code{\link{install_cran}}, \code{\link{install_dev}},
+  \code{\link{install_gitlab}}, \code{\link{install_git}},
+  \code{\link{install_local}}, \code{\link{install_svn}},
+  \code{\link{install_url}}, \code{\link{install_version}}
 }
+\concept{package installation}

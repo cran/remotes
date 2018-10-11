@@ -4,7 +4,10 @@
 \alias{install_version}
 \title{Install specified version of a CRAN package.}
 \usage{
-install_version(package, version = NULL, repos = getOption("repos"),
+install_version(package, version = NULL, dependencies = NA,
+  upgrade = c("ask", "always", "never"), force = FALSE,
+  quiet = FALSE, build = FALSE, build_opts = c("--no-resave-data",
+  "--no-manual", "--no-build-vignettes"), repos = getOption("repos"),
   type = getOption("pkgType"), ...)
 }
 \arguments{
@@ -12,8 +15,49 @@ install_version(package, version = NULL, repos = getOption("repos"),
 
 \item{version}{If the specified version is NULL or the same as the most
 recent version of the package, this function simply calls
-\code{\link[utils]{install.packages}}. Otherwise, it looks at the list of
+\code{\link[utils:install.packages]{utils::install.packages()}}. Otherwise, it looks at the list of
 archived source tarballs and tries to install an older version instead.}
+
+\item{dependencies}{logical indicating whether to also install
+    uninstalled packages which these packages depend on/link
+    to/import/suggest (and so on recursively).  Not used if \code{repos
+    = NULL}.  Can also be a character vector, a subset of
+    \code{c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")}.
+
+    Only supported if \code{lib} is of length one (or missing),
+    so it is unambiguous where to install the dependent packages.  If
+    this is not the case it is ignored, with a warning.
+
+    The default, \code{NA}, means
+    \code{c("Depends", "Imports", "LinkingTo")}.
+
+    \code{TRUE} means to use
+    \code{c("Depends", "Imports", "LinkingTo", "Suggests")} for
+    \code{pkgs} and
+    \code{c("Depends", "Imports", "LinkingTo")} for added dependencies:
+    this installs all the packages needed to run \code{pkgs}, their
+    examples, tests and vignettes (if the package author specified them
+    correctly).
+
+    In all of these, \code{"LinkingTo"} is omitted for binary packages.
+  }
+
+\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
+which out of date packages to upgrade. For non-interactive sessions "ask" is
+equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
+correspond to "always" and "never" respectively.}
+
+\item{force}{Force installation, even if the remote state has not changed
+since the previous install.}
+
+\item{quiet}{
+    logical: if true, reduce the amount of output.
+  }
+
+\item{build}{If \code{TRUE} build the package before installing.}
+
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+is \code{TRUE}.}
 
 \item{repos}{
     character vector, the base URL(s) of the repositories
@@ -30,7 +74,7 @@ archived source tarballs and tries to install an older version instead.}
     builds: see the section on \sQuote{Binary packages} for those.
   }
 
-\item{...}{Other arguments passed on to \code{\link[utils]{install.packages}}.}
+\item{...}{Other arguments passed on to \code{\link[utils:install.packages]{utils::install.packages()}}.}
 }
 \description{
 If you are installing an package that contains compiled code, you will
@@ -38,6 +82,16 @@ need to have an R development environment installed.  You can check
 if you do by running \code{devtools::has_devel} (you need the
 \code{devtools} package for this).
 }
+\seealso{
+Other package installation: \code{\link{install_bioc}},
+  \code{\link{install_bitbucket}},
+  \code{\link{install_cran}}, \code{\link{install_dev}},
+  \code{\link{install_github}},
+  \code{\link{install_gitlab}}, \code{\link{install_git}},
+  \code{\link{install_local}}, \code{\link{install_svn}},
+  \code{\link{install_url}}
+}
 \author{
 Jeremy Stephens
 }
+\concept{package installation}

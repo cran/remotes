@@ -4,8 +4,13 @@
 \alias{install_bitbucket}
 \title{Install a package directly from bitbucket}
 \usage{
-install_bitbucket(repo, ref = "master", subdir = NULL, auth_user = NULL,
-  password = NULL, ...)
+install_bitbucket(repo, ref = "master", subdir = NULL,
+  auth_user = bitbucket_user(), password = bitbucket_password(),
+  host = "api.bitbucket.org/2.0", dependencies = NA,
+  upgrade = c("ask", "always", "never"), force = FALSE,
+  quiet = FALSE, build = TRUE, build_opts = c("--no-resave-data",
+  "--no-manual", "--no-build-vignettes"), repos = getOption("repos"),
+  type = getOption("pkgType"), ...)
 }
 \arguments{
 \item{repo}{Repository address in the format
@@ -21,15 +26,59 @@ Defaults to master.}
 
 \item{auth_user}{your account username if you're attempting to install
 a package hosted in a private repository (and your username is different
-to \code{username})}
+to \code{username}). Defaults to the \code{BITBUCKET_USER} environment
+variable.}
 
-\item{password}{your password}
+\item{password}{your password. Defaults to the \code{BITBUCKET_PASSWORD}
+environment variable. See details for further information on setting
+up a password.}
 
-\item{...}{Other arguments passed on to \code{\link[utils]{install.packages}}.}
+\item{host}{GitHub API host to use. Override with your GitHub enterprise
+hostname, for example, \code{"github.hostname.com/api/v3"}.}
+
+\item{dependencies}{Which dependencies do you want to check?
+Can be a character vector (selecting from "Depends", "Imports",
+"LinkingTo", "Suggests", or "Enhances"), or a logical vector.
+
+\code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
+"Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
+and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
+just check this package, not its dependencies).}
+
+\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
+which out of date packages to upgrade. For non-interactive sessions "ask" is
+equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
+correspond to "always" and "never" respectively.}
+
+\item{force}{Force installation, even if the remote state has not changed
+since the previous install.}
+
+\item{quiet}{If \code{TRUE}, suppress output.}
+
+\item{build}{If \code{TRUE} build the package before installing.}
+
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+is \code{TRUE}.}
+
+\item{repos}{A character vector giving repositories to use.}
+
+\item{type}{Type of package to \code{update}.}
+
+\item{...}{Other arguments passed on to \code{\link[utils:install.packages]{utils::install.packages()}}.}
 }
 \description{
 This function is vectorised so you can install multiple packages in
 a single command.
+}
+\details{
+To install from a private repo, or more generally, access the
+Bitbucket API with your own credentials, you will need to get an access
+token. You can create an access token following the instructions found in
+the
+\href{https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html}{Bitbucket
+App Passwords documentation}. The App Password requires read-only access to
+your repositories and pull requests. Then store your password in the
+environment variable \code{BITBUCKET_PASSWORD} (e.g. \code{evelynwaugh:swordofhonour})
 }
 \examples{
 \dontrun{
@@ -39,5 +88,13 @@ install_bitbucket("dannavarro/lsr-package")
 }
 \seealso{
 Bitbucket API docs:
-  \url{https://confluence.atlassian.com/bitbucket/use-the-bitbucket-cloud-rest-apis-222724129.html}
+\url{https://confluence.atlassian.com/bitbucket/use-the-bitbucket-cloud-rest-apis-222724129.html}
+
+Other package installation: \code{\link{install_bioc}},
+  \code{\link{install_cran}}, \code{\link{install_dev}},
+  \code{\link{install_github}},
+  \code{\link{install_gitlab}}, \code{\link{install_git}},
+  \code{\link{install_local}}, \code{\link{install_svn}},
+  \code{\link{install_url}}, \code{\link{install_version}}
 }
+\concept{package installation}

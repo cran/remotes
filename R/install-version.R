@@ -3,25 +3,43 @@
 #'
 #' If you are installing an package that contains compiled code, you will
 #' need to have an R development environment installed.  You can check
-#' if you do by running \code{devtools::has_devel} (you need the
-#' \code{devtools} package for this).
+#' if you do by running `devtools::has_devel` (you need the
+#' `devtools` package for this).
 #'
 #' @export
 #' @family package installation
 #' @param package package name
 #' @param version If the specified version is NULL or the same as the most
 #'   recent version of the package, this function simply calls
-#'   \code{\link[utils]{install.packages}}. Otherwise, it looks at the list of
+#'   [utils::install.packages()]. Otherwise, it looks at the list of
 #'   archived source tarballs and tries to install an older version instead.
-#' @param ... Other arguments passed on to \code{\link[utils]{install.packages}}.
+#' @param ... Other arguments passed on to [utils::install.packages()].
 #' @inheritParams utils::install.packages
+#' @inheritParams install_github
 #' @author Jeremy Stephens
 #' @importFrom utils available.packages contrib.url install.packages
 
-install_version <- function(package, version = NULL, repos = getOption("repos"), type = getOption("pkgType"), ...) {
+install_version <- function(package, version = NULL,
+                            dependencies = NA,
+                            upgrade = c("ask", "always", "never"),
+                            force = FALSE,
+                            quiet = FALSE,
+                            build = FALSE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                            repos = getOption("repos"),
+                            type = getOption("pkgType"),
+                            ...) {
 
   url <- download_version_url(package, version, repos, type)
-  install_url(url, ...)
+  install_url(url,
+              dependencies = dependencies,
+              upgrade = upgrade,
+              force = force,
+              quiet = quiet,
+              build = build,
+              build_opts = build_opts,
+              repos = repos,
+              type = type,
+              ...)
 }
 
 package_find_repo <- function(package, repos) {

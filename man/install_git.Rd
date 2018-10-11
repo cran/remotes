@@ -4,8 +4,13 @@
 \alias{install_git}
 \title{Install a package from a git repository}
 \usage{
-install_git(url, subdir = NULL, branch = NULL, git = c("auto", "git2r",
-  "external"), ...)
+install_git(url, subdir = NULL, ref = NULL, branch = NULL,
+  credentials = NULL, git = c("auto", "git2r", "external"),
+  dependencies = NA, upgrade = c("ask", "always", "never"),
+  force = FALSE, quiet = FALSE, build = TRUE,
+  build_opts = c("--no-resave-data", "--no-manual",
+  "--no-build-vignettes"), repos = getOption("repos"),
+  type = getOption("pkgType"), ...)
 }
 \arguments{
 \item{url}{Location of package. The url should point to a public or
@@ -14,13 +19,46 @@ private repository.}
 \item{subdir}{A sub-directory within a git repository that may
 contain the package we are interested in installing.}
 
-\item{branch}{Name of branch or tag to use, if not master.}
+\item{ref}{Name of branch, tag or SHA reference to use, if not HEAD.}
+
+\item{branch}{Deprecated, synonym for ref.}
+
+\item{credentials}{A git2r credentials object passed through to clone.
+Supplying this argument implies using \code{git2r} with \code{git}.}
 
 \item{git}{Whether to use the \code{git2r} package, or an external
 git client via system. Default is \code{git2r} if it is installed,
 otherwise an external git installation.}
 
-\item{...}{passed on to \code{\link[utils]{install.packages}}}
+\item{dependencies}{Which dependencies do you want to check?
+Can be a character vector (selecting from "Depends", "Imports",
+"LinkingTo", "Suggests", or "Enhances"), or a logical vector.
+
+\code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
+"Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
+and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
+just check this package, not its dependencies).}
+
+\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
+which out of date packages to upgrade. For non-interactive sessions "ask" is
+equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
+correspond to "always" and "never" respectively.}
+
+\item{force}{Force installation, even if the remote state has not changed
+since the previous install.}
+
+\item{quiet}{If \code{TRUE}, suppress output.}
+
+\item{build}{If \code{TRUE} build the package before installing.}
+
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+is \code{TRUE}.}
+
+\item{repos}{A character vector giving repositories to use.}
+
+\item{type}{Type of package to \code{update}.}
+
+\item{...}{Other arguments passed on to \code{\link[utils:install.packages]{utils::install.packages()}}.}
 }
 \description{
 It is vectorised so you can install multiple packages with
@@ -30,6 +68,16 @@ or an external git client installed.
 \examples{
 \dontrun{
 install_git("git://github.com/hadley/stringr.git")
-install_git("git://github.com/hadley/stringr.git", branch = "stringr-0.2")
+install_git("git://github.com/hadley/stringr.git", ref = "stringr-0.2")
 }
 }
+\seealso{
+Other package installation: \code{\link{install_bioc}},
+  \code{\link{install_bitbucket}},
+  \code{\link{install_cran}}, \code{\link{install_dev}},
+  \code{\link{install_github}},
+  \code{\link{install_gitlab}},
+  \code{\link{install_local}}, \code{\link{install_svn}},
+  \code{\link{install_url}}, \code{\link{install_version}}
+}
+\concept{package installation}

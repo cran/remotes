@@ -92,3 +92,55 @@ test_that("in_dir", {
   expect_equal(getwd(), wd)
 
 })
+
+# Adapted from https://github.com/gisle/mime-base64/blob/cf23d49e517c6ed8f4b24295f63721e8c9935010/t/base64.t
+test_that("base64_decode", {
+
+  decode_tests <- c(
+    'YWE='   = 'aa',
+    ' YWE='  =  'aa',
+    'Y WE='  =  'aa',
+    'YWE= '  =  'aa',
+    "Y\nW\r\nE=" =  'aa',
+    'YWE=====' =  'aa',    # extra padding
+    'YWE'      =  'aa',    # missing padding
+    'YWFh====' =  'aaa',
+    'YQ'       =  'a',
+    'Y'        = '',
+    'x=='      = ''
+  )
+
+  for (i in seq_along(decode_tests)) {
+    encoded <- names(decode_tests)[[i]]
+    expected <- decode_tests[[i]]
+
+    decoded <- base64_decode(encoded)
+    expect_equal(decoded, expected)
+  }
+})
+
+test_that("windows untar, --force-local errors", {
+  do <- function(has, tar_result) {
+    withr::local_envvar(c(TAR = ""))
+    calls <- 0
+    mockery::stub(untar, "system2", if (has) "--force-local" else "nah")
+    mockery::stub(untar, "os_type", "windows")
+    mockery::stub(untar, "utils::untar", function(extras, ...) {
+      calls <<- calls + 1L
+      if (grepl("force-local", extras)) tar_result() else "ok"
+    })
+
+    expect_equal(untar("foobar"), "ok")
+    expect_equal(calls, 1 + has)
+  }
+
+  ## Has force-local but tar fails with it
+  do(TRUE, function() stop("failed"))
+  do(TRUE, function() 1L)
+  do(TRUE, function() structure("blah", status = 1L))
+
+  ## Does not have force-local
+  do(FALSE, function() stop("failed"))
+  do(FALSE, function() 1L)
+  do(FALSE, function() structure("blah", status = 1L))
+})
