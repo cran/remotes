@@ -55,3 +55,23 @@ test_that("github_DESCRIPTION", {
     github_DESCRIPTION("r-lib", "remotes", ref = "1.0.0", use_curl = TRUE),
     desc)
 })
+
+test_that("github_error", {
+  mockery::stub(
+    github_error,
+    "curl::parse_headers_list",
+    list(`x-ratelimit-remaining` = 0, `x-ratelimit-limit` = 5000, `x-ratelimit-reset` = "1539962178"))
+
+  # Test without the TRAVIS envvar set
+  withr::with_envvar(c(TRAVIS = NA), {
+    err <- github_error(list(headers = "", status_code = "304", content = charToRaw('{"message": "foobar"}')))
+    expect_known_output(conditionMessage(err), test_path("github-error-local.txt"), print = TRUE)
+  })
+
+  # Test with the TRAVIS envvar set
+  withr::with_envvar(c(TRAVIS = "true"), {
+    err <- github_error(list(headers = "", status_code = "304", content = charToRaw('{"message": "foobar"}')))
+    expect_known_output(conditionMessage(err), test_path("github-error-travis.txt"), print = TRUE)
+  })
+
+})

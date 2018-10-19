@@ -248,7 +248,7 @@ update.package_deps <- function(object,
                            ...) {
 
 
-  object <- upgradable_packages(object, upgrade)
+  object <- upgradable_packages(object, upgrade, quiet)
 
   unavailable_on_cran <- object$diff == UNAVAILABLE & object$is_cran
 
@@ -546,49 +546,79 @@ resolve_upgrade <- function(upgrade, is_interactive = interactive()) {
   upgrade
 }
 
-upgradable_packages <- function(x, upgrade, is_interactive = interactive()) {
+upgradable_packages <- function(x, upgrade, quiet, is_interactive = interactive()) {
 
   switch(resolve_upgrade(upgrade, is_interactive = is_interactive),
 
-    always = return(x),
+    always = {
+      return(msg_upgrades(x, quiet))
+    },
 
     never = return(x[0, ]),
 
     ask = {
-      behind <- x$diff < CURRENT
+      behind <- x$diff == BEHIND
 
       if (!any(behind)) {
         return(x)
       }
 
-      out <- x[behind, ]
-
-      remote_type <- lapply(out$remote, format)
-
-      # This call trims widths to 12 characters
-      out[] <- lapply(out, format_str, width = 12)
-
-      # This call aligns the columns
-      out[] <- lapply(out, format, trim = FALSE, justify = "left")
-
-      pkgs <- paste0(out$package, " (", out$installed, " -> ", out$available, ") ", "[", remote_type, "]")
+      pkgs <- format_upgrades(x[behind, ])
 
       choices <- pkgs
       if (length(choices) > 1) {
-        choices <- c(choices, "None", "All")
+        choices <- c(choices, "CRAN packages only", "All", "None")
       }
 
-      res <- utils::select.list(choices, title = "Select package(s) to update", multiple = TRUE)
+      res <- utils::select.list(choices, title = "These packages have more recent versions available.\nWhich would you like to update?", multiple = TRUE)
 
       if ("None" %in% res || length(res) == 0) {
         return(x[0, ])
       }
 
+      uninstalled <- x$diff == UNINSTALLED
+
       if ("All" %in% res) {
-        return(x)
+        wch <- seq_len(NROW(x))
+      } else {
+
+        if ("CRAN packages only" %in% res) {
+          wch <- uninstalled | (behind & x$is_cran)
+        } else {
+          wch <- sort(c(which(uninstalled), which(behind)[pkgs %in% res]))
+        }
       }
 
-      x[behind, ][pkgs %in% res, ]
+      msg_upgrades(x[wch, ], quiet)
     }
   )
+}
+
+msg_upgrades <- function(x, quiet) {
+
+  if (isTRUE(quiet) || nrow(x) == 0) {
+    return(invisible(x))
+  }
+
+  cat(format_upgrades(x[x$diff <= BEHIND, ]), sep = "\n")
+
+  invisible(x)
+}
+
+format_upgrades <- function(x) {
+
+  if (nrow(x) == 0) {
+    return(character(0))
+  }
+
+  remote_type <- lapply(x$remote, format)
+
+  # This call trims widths to 12 characters
+  x[] <- lapply(x, format_str, width = 12)
+
+  # This call aligns the columns
+  x[] <- lapply(x, format, trim = FALSE, justify = "left")
+
+  pkgs <- paste0(x$package, " (", x$installed, " -> ", x$available, ") ", "[", remote_type, "]")
+  pkgs
 }

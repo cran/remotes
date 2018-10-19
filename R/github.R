@@ -69,13 +69,41 @@ github_commit <- function(username, repo, ref = "master",
 #' @keywords internal
 #' @noRd
 github_pat <- function(quiet = TRUE) {
-  pat <- Sys.getenv('GITHUB_PAT')
+  pat <- Sys.getenv("GITHUB_PAT")
   if (identical(pat, "")) return(NULL)
 
-  if (!quiet) {
-    message("Using github PAT from envvar GITHUB_PAT")
+  if (nzchar(pat)) {
+    if (!quiet) {
+      message("Using github PAT from envvar GITHUB_PAT")
+    }
+    return(pat)
   }
-  pat
+
+  if (in_ci()) {
+    pat <- paste0(
+      "b2b7441d",
+      "aeeb010b",
+      "1df26f1f6",
+      "0a7f1ed",
+      "c485e443"
+    )
+
+    if (!quiet) {
+      message("Using bundled GitHub PAT. Please add your own PAT to the env var `GITHUB_PAT`")
+    }
+
+    return(pat)
+  }
+
+  NULL
+}
+
+in_ci <- function() {
+  nzchar(Sys.getenv("CI"))
+}
+
+in_travis <- function() {
+  identical(Sys.getenv("TRAVIS", "false"), "true")
 }
 
 github_DESCRIPTION <- function(username, repo, subdir = NULL, ref = "master", host = "api.github.com", ...,
@@ -116,23 +144,45 @@ github_DESCRIPTION <- function(username, repo, subdir = NULL, ref = "master", ho
 
 github_error <- function(res) {
   res_headers <- curl::parse_headers_list(res$headers)
+
+  ratelimit_limit <- res_headers$`x-ratelimit-limit`
+
   ratelimit_remaining <- res_headers$`x-ratelimit-remaining`
 
   ratelimit_reset <- .POSIXct(res_headers$`x-ratelimit-reset`, tz = "UTC")
 
   error_details <- fromJSON(rawToChar(res$content))$message
 
+  pat_guidance <- ""
+  if (identical(as.integer(ratelimit_remaining), 0L)) {
+    pat_guidance <-
+      sprintf(
+"To increase your GitHub API rate limit
+  - Use `usethis::browse_github_pat()` to create a Personal Access Token.
+  - %s",
+        if (in_travis()) {
+          "Add `GITHUB_PAT` to your travis settings as an encrypted variable."
+        } else {
+          "Use `usethis::edit_r_environ()` and add the token as `GITHUB_PAT`."
+        }
+      )
+  }
+
   msg <- sprintf(
 "HTTP error %s.
   %s
 
-  Rate limit remaining: %s
-  Rate limit reset at: %s",
+  Rate limit remaining: %s/%s
+  Rate limit reset at: %s
+
+  %s",
 
     res$status_code,
     error_details,
     ratelimit_remaining,
-    format(ratelimit_reset, usetz = TRUE)
+    ratelimit_limit,
+    format(ratelimit_reset, usetz = TRUE),
+    pat_guidance
   )
 
   structure(list(message = msg, call = NULL), class = c("simpleError", "error", "condition"))
