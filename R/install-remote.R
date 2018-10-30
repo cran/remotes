@@ -40,7 +40,9 @@ install_remote <- function(remote,
   if (inherits(remote, "cran_remote")) {
     install_packages(
       package_name, repos = remote$repos, type = remote$pkg_type,
-      ..., quiet = quiet)
+      dependencies = dependencies,
+      quiet = quiet,
+      ...)
     return(invisible(package_name))
   }
 
@@ -75,12 +77,28 @@ install_remotes <- function(remotes, ...) {
 
 # Add metadata
 add_metadata <- function(pkg_path, meta) {
-  path <- file.path(pkg_path, "DESCRIPTION")
-  desc <- read_dcf(path)
 
-  desc <- utils::modifyList(desc, meta)
+  # During installation, the DESCRIPTION file is read and an package.rds file
+  # created with most of the information from the DESCRIPTION file. Functions
+  # that read package metadata may use either the DESCRIPTION file or the
+  # package.rds file, therefore we attempt to modify both of them
+  source_desc <- file.path(pkg_path, "DESCRIPTION")
+  binary_desc <- file.path(pkg_path, "Meta", "package.rds")
+  if (file.exists(source_desc)) {
+    desc <- read_dcf(source_desc)
 
-  write_dcf(path, desc)
+    desc <- utils::modifyList(desc, meta)
+
+    write_dcf(source_desc, desc)
+  }
+
+  if (file.exists(binary_desc)) {
+    pkg_desc <- base::readRDS(binary_desc)
+    desc <- as.list(pkg_desc$DESCRIPTION)
+    desc <- utils::modifyList(desc, meta)
+    pkg_desc$DESCRIPTION <- stats::setNames(as.character(desc), names(desc))
+    base::saveRDS(pkg_desc, binary_desc)
+  }
 }
 
 # Modify the MD5 file - remove the line for DESCRIPTION

@@ -1,8 +1,26 @@
+# remotes 2.0.2
+
+* `install_deps()` now installs un-installed remotes packages even when
+  `upgrade = "never"` (@ankane, #227)
+
+* `install_version()` now removes metadata added as a byproduct of using
+  `install_url()` internally() (#224)
+
+* `install()` now avoids converting warnings to errors if
+  `R_REMOTES_NO_ERRORS_FROM_WARNINGS` is unset and
+  `_R_CHECK_FORCE_SUGGESTS_=false`. This avoids failures due to Suggested
+  packages potentially being missing.
+
+* `install_bitbucket()` now works properly with packages in subdirectories
+  (#220)
+
+* `install_deps()` now installs un-installed packages even when `upgrade =
+  "never"` (#218)
 
 # remotes 2.0.1
 
 * `install_github()` now bundles a GitHub PAT which is used on Travis to avoid
-c hitting the rate limit too frequently. It also contains a more informative
+  hitting the rate limit too frequently. It also contains a more informative
   error message when the rate limit is hit on how to setup a GitHub personal
   access token.
 

@@ -57,7 +57,7 @@ github_commit <- function(username, repo, ref = "master",
     on.exit(unlink(tmp), add = TRUE)
 
     download(tmp, url, auth_token = pat)
-    get_json_field(readLines(tmp, warn = FALSE), "sha")
+    get_json_sha(readLines(tmp, warn = FALSE))
   }
 }
 
@@ -70,7 +70,6 @@ github_commit <- function(username, repo, ref = "master",
 #' @noRd
 github_pat <- function(quiet = TRUE) {
   pat <- Sys.getenv("GITHUB_PAT")
-  if (identical(pat, "")) return(NULL)
 
   if (nzchar(pat)) {
     if (!quiet) {
