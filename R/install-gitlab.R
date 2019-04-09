@@ -10,6 +10,11 @@
 #'   `username/repo[/subdir][@@ref]`.
 #' @param host GitLab API host to use. Override with your GitLab enterprise
 #'   hostname, for example, `"gitlab.hostname.com"`.
+#' @param auth_token To install from a private repo, generate a personal access
+#'   token (PAT) in \url{https://gitlab.com/profile/personal_access_tokens} and
+#'   supply to this argument. This is safer than using a password because you
+#'   can easily delete a PAT without affecting any others. Defaults to the
+#'   GITLAB_PAT environment variable.
 #' @inheritParams install_github
 #' @export
 #' @family package installation
@@ -21,7 +26,7 @@ install_gitlab <- function(repo,
                            auth_token = gitlab_pat(),
                            host = "gitlab.com",
                            dependencies = NA,
-                           upgrade = c("ask", "always", "never"),
+                           upgrade = c("default", "ask", "always", "never"),
                            force = FALSE,
                            quiet = FALSE,
                            build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),

@@ -17,10 +17,12 @@
 #'   and is the default. `FALSE` is shorthand for no dependencies (i.e.
 #'   just check this package, not its dependencies).
 #' @param quiet If `TRUE`, suppress output.
-#' @param upgrade One of "ask", "always" or "never". "ask" prompts the user for
-#'   which out of date packages to upgrade. For non-interactive sessions "ask" is
-#'   equivalent to "always". `TRUE` and `FALSE` are also accepted and
-#'   correspond to "always" and "never" respectively.
+#' @param upgrade One of "default", "ask", "always", or "never". "default"
+#'   respects the value of the `R_REMOTES_UPGRADE` environment variable if set,
+#'   and falls back to "ask" if unset. "ask" prompts the user for which out of
+#'   date packages to upgrade. For non-interactive sessions "ask" is equivalent
+#'   to "always". `TRUE` and `FALSE` are also accepted and correspond to
+#'   "always" and "never" respectively.
 #' @param repos A character vector giving repositories to use.
 #' @param type Type of package to `update`.
 #'
@@ -143,13 +145,13 @@ combine_deps <- function(cran_deps, remote_deps) {
     return(cran_deps)
   }
 
-  # Only keep the remotes that are specified in the cran_deps
-  remote_deps <- remote_deps[remote_deps$package %in% cran_deps$package, ]
+  # Only keep the remotes that are specified in the cran_deps or are NA
+  remote_deps <- remote_deps[is.na(remote_deps$package) | remote_deps$package %in% cran_deps$package, ]
 
   # If there are remote deps remove the equivalent CRAN deps
   cran_deps <- cran_deps[!(cran_deps$package %in% remote_deps$package), ]
 
-  rbind(cran_deps, remote_deps)
+  rbind(remote_deps, cran_deps)
 }
 
 ## -2 = not installed, but available on CRAN
@@ -239,7 +241,7 @@ UNAVAILABLE <- 2L
 
 update.package_deps <- function(object,
                            dependencies = NA,
-                           upgrade = c("ask", "always", "never"),
+                           upgrade = c("default", "ask", "always", "never"),
                            force = FALSE,
                            quiet = FALSE,
                            build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
@@ -252,7 +254,7 @@ update.package_deps <- function(object,
 
   unavailable_on_cran <- object$diff == UNAVAILABLE & object$is_cran
 
-  unknown_remotes <- object$diff == UNAVAILABLE & !object$is_cran
+  unknown_remotes <- (object$diff == UNAVAILABLE | object$diff == UNINSTALLED) & !object$is_cran
 
   if (any(unavailable_on_cran) && !quiet) {
     message("Skipping ", sum(unavailable_on_cran), " packages not available: ",
@@ -294,7 +296,7 @@ update.package_deps <- function(object,
 
   behind <- is.na(object$installed) | object$diff < CURRENT
 
-  if (any(object$is_cran & behind)) {
+  if (any(object$is_cran & !unavailable_on_cran & behind)) {
     install_packages(object$package[object$is_cran & behind], repos = attr(object, "repos"),
       type = attr(object, "type"), dependencies = dependencies, quiet = quiet, ...)
   }
@@ -419,7 +421,7 @@ standardise_dep <- function(x) {
 
 update_packages <- function(packages = TRUE,
                             dependencies = NA,
-                            upgrade = c("ask", "always", "never"),
+                            upgrade = c("default", "ask", "always", "never"),
                             force = FALSE,
                             quiet = FALSE,
                             build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
@@ -538,7 +540,10 @@ resolve_upgrade <- function(upgrade, is_interactive = interactive()) {
     upgrade <- "never"
   }
 
-  upgrade <- match.arg(upgrade, c("ask", "always", "never"))
+  upgrade <- match.arg(upgrade[[1]], c("default", "ask", "always", "never"))
+
+  if (identical(upgrade, "default"))
+    upgrade <- Sys.getenv("R_REMOTES_UPGRADE", unset = "ask")
 
   if (!is_interactive && identical(upgrade, "ask")) {
     upgrade <- "always"
@@ -571,7 +576,7 @@ upgradable_packages <- function(x, upgrade, quiet, is_interactive = interactive(
 
       choices <- pkgs
       if (length(choices) > 1) {
-        choices <- c(choices, "CRAN packages only", "All", "None")
+        choices <- c("All", "CRAN packages only", "None", choices)
       }
 
       res <- utils::select.list(choices, title = "These packages have more recent versions available.\nWhich would you like to update?", multiple = TRUE)

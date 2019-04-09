@@ -12,7 +12,7 @@
 #'   name, or a call to [github_pull()]. Defaults to `"master"`.
 #' @param subdir subdirectory within repo that contains the R package.
 #' @param auth_token To install from a private repo, generate a personal
-#'   access token (PAT) in <https://github.com/settings/applications> and
+#'   access token (PAT) in <https://github.com/settings/tokens> and
 #'   supply to this argument. This is safer than using a password because
 #'   you can easily delete a PAT without affecting any others. Defaults to
 #'   the `GITHUB_PAT` environment variable.
@@ -37,7 +37,7 @@
 #'   "mfrasca/r-logging/pkg"))
 #'
 #' # To install from a private repo, use auth_token with a token
-#' # from https://github.com/settings/applications. You only need the
+#' # from https://github.com/settings/tokens. You only need the
 #' # repo scope. Best practice is to save your PAT in env var called
 #' # GITHUB_PAT.
 #' install_github("hadley/private", auth_token = "abc")
@@ -49,7 +49,7 @@ install_github <- function(repo,
                            auth_token = github_pat(),
                            host = "api.github.com",
                            dependencies = NA,
-                           upgrade = c("ask", "always", "never"),
+                           upgrade = c("default", "ask", "always", "never"),
                            force = FALSE,
                            quiet = FALSE,
                            build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
@@ -231,7 +231,7 @@ remote_package_name.github_remote <- function(remote, ..., use_local = TRUE,
   }
 
   tmp <- tempfile()
-  writeLines(desc, tmp)
+  writeChar(desc, tmp)
   on.exit(unlink(tmp))
 
   read_dcf(tmp)$Package

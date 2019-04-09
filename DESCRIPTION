@@ -1,7 +1,7 @@
 Package: remotes
 Title: R Package Installation from Remote Repositories, Including
         'GitHub'
-Version: 2.0.2
+Version: 2.0.3
 Authors@R: c(
     person("Gábor", "Csárdi", , "csardi.gabor@gmail.com", role = c("aut", "cre")),
     person("Hadley", "Wickham", role = c("aut")),
@@ -14,21 +14,22 @@ Authors@R: c(
     )
 Description: Download and install R packages stored in 'GitHub',
     'BitBucket', or plain 'subversion' or 'git' repositories. This package
-    is a lightweight replacement of the 'install_*' functions in 'devtools'.
+    provides the 'install_*' functions in 'devtools'.
     Indeed most of the code was copied over from 'devtools'.
 License: GPL (>= 2)
 URL: https://github.com/r-lib/remotes#readme
 BugReports: https://github.com/r-lib/remotes/issues
-Imports: methods, utils
-Suggests: curl, covr, git2r (>= 0.23.0), knitr, mockery, pkgbuild (>=
-        1.0.1), pingr, rmarkdown, testthat, withr
+Imports: methods, stats, tools, utils
+Suggests: brew, callr, curl, covr, git2r (>= 0.23.0), knitr, mockery,
+        pkgbuild (>= 1.0.1), pingr, rmarkdown, rprojroot, testthat,
+        withr
 Depends: R (>= 3.0.0)
 VignetteBuilder: knitr
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 SystemRequirements: Subversion for install_svn, git for install_git
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2018-10-30 10:46:53 UTC; gaborcsardi
+Packaged: 2019-04-09 15:46:04 UTC; jhester
 Author: Gábor Csárdi [aut, cre],
   Hadley Wickham [aut],
   Winston Chang [aut],
@@ -39,4 +40,4 @@ Author: Gábor Csárdi [aut, cre],
   Mango Solutions [cph]
 Maintainer: Gábor Csárdi <csardi.gabor@gmail.com>
 Repository: CRAN
-Date/Publication: 2018-10-30 11:30:10 UTC
+Date/Publication: 2019-04-09 16:12:57 UTC

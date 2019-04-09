@@ -26,7 +26,7 @@ Indeed most of the code was copied over from `devtools`.
 	* Install from local files or URLs.
 	* Install the dependencies of a local package tree.
 	* Install specific package versions from CRAN.
-* Supports [BioConductor](https://bioconductor.org/) packages.
+* Supports [Bioconductor](https://bioconductor.org/) packages.
 * Supports the `Remotes` field in `DESCRIPTION`. See more
   [here](https://github.com/r-lib/remotes/blob/master/vignettes/dependencies.Rmd).
 * Supports the `Additional_repositories` field in `DESCRIPTION`.
@@ -38,7 +38,7 @@ Indeed most of the code was copied over from `devtools`.
 
 ## Installation
 
-Install the relesed version of remotes from CRAN:
+Install the released version of remotes from CRAN:
 
 ```r
 install.packages("remotes")
@@ -128,7 +128,7 @@ assumed. Other possible values: `gitlab::`,`bitbucket::`, `git::`, `local::`,
 `svn::`, `url::`, `version::`, `cran::`, `bioc::`.
 
 See more about the `Remotes` field in this
-[vignette](https://github.com/r-lib/remotes/blob/master/vignettes/dependencies.Rmd).
+[vignette](https://remotes.r-lib.org/articles/dependencies.html).
 
 #### Additional repositories
 
@@ -137,12 +137,10 @@ remotes supports the `Additional_repositories` field in
 package repositories. See the [Writing R extensions](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Package-Dependencies)
 manual for details.
 
-#### BioConductor packages
+#### Bioconductor packages
 
-BioConductor packages are automatically detected and their
-dependencies are installed from BioConductor. The BiocInstaller
-package, which is needed to install them, is also automatically
-installed temporarily.
+Bioconductor packages are automatically detected and their
+dependencies are installed from Bioconductor.
 
 #### Currently supported remote types
 
@@ -187,7 +185,38 @@ in R `Sys.setenv(R_REMOTES_STANDALONE="true")`) you can force remotes to
 operate in standalone mode and use only its internal R implementations. This
 will allow successful installation of these packages.
 
+### Options
+
+remotes uses the following standard R options, see `?options` for their
+details:
+
+* `download.file.method` for the default download method. See
+  `?download.file`.
+
+* `pkgType` for the package type (source or binary, see manual) to install,
+  download or look up dependencies for.
+
+* `repos` for the locations of the user's standard CRAN(-like) repositoies.
+
+It also uses some remotes specific options:
+
+* `BioC_git` for the URL of the default Bioconductor git mirror.
+
+* `unzip` for the path of the external `unzip` program.
+
 ### Environment variables
+
+* The `BITBUCKET_USER` and `BITBUCKET_PASSWORD` enrironment variables
+  are used for the default BitBucket  user name and password, in
+  `install_bitbucket()`
+
+* The `GITHUB_PAT` environment variable is used as the default GitHub
+  personal access token for all GitHub API queries.
+
+* The `R_REMOTES_UPGRADE` environment variable can be used to set a default
+  preferred value for the `upgrade =` argument accepted by the various
+  `install_*()` functions. For example, you can set `R_REMOTES_UPGRADE=always`
+  to upgrade dependent packages without asking the user.
 
 * Setting `R_REMOTES_STANDALONE=true` forces remotes to work in standalone
   mode and avoid loading its optional dependencies (curl, git2 and pkgbuild
@@ -197,7 +226,7 @@ will allow successful installation of these packages.
   installation for warning messages. Warnings usually mean installation
   errors, so by default remotes stops for a warning. However, sometimes
   other warnings might happen, that could be ignored by setting this
-  environment variable. 
+  environment variable.
 
 * Setting `_R_CHECK_FORCE_SUGGESTS_=false` while
   `R_REMOTES_NO_ERRORS_FROM_WARNINGS` is unset will also avoid stopping the

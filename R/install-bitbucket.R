@@ -25,19 +25,32 @@
 #' App Passwords documentation}. The App Password requires read-only access to
 #' your repositories and pull requests. Then store your password in the
 #' environment variable `BITBUCKET_PASSWORD` (e.g. `evelynwaugh:swordofhonour`)
+#'
+#' Note that on Windows, authentication requires the "libcurl" download
+#' method. You can set the default download method via the
+#' `download.file.method` option:
+#' ```
+#' options(download.file.method = "libcurl")
+#' ```
+#' In particular, if unset, RStudio sets the download method to "wininet".
+#' To override this, you might want to set it to "libcurl" in your
+#' R profile, see [base::Startup]. The caveat of the "libcurl" method is
+#' that it does _not_ set the system proxies automatically, see
+#' "Setting Proxies" in [utils::download.file()].
+#'
 #' @inheritParams install_github
 #' @family package installation
 #' @export
 #' @examples
 #' \dontrun{
 #' install_bitbucket("sulab/mygene.r@@default")
-#' install_bitbucket("dannavarro/lsr-package")
+#' install_bitbucket("djnavarro/lsr")
 #' }
 install_bitbucket <- function(repo, ref = "master", subdir = NULL,
                               auth_user = bitbucket_user(), password = bitbucket_password(),
                               host = "api.bitbucket.org/2.0",
                               dependencies = NA,
-                              upgrade = c("ask", "always", "never"),
+                              upgrade = c("default", "ask", "always", "never"),
                               force = FALSE,
                               quiet = FALSE,
                               build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
@@ -179,13 +192,13 @@ bitbucket_download_url <- function(username, repo, ref = "master",
 bitbucket_password <- function(quiet = TRUE) {
   pass <- Sys.getenv("BITBUCKET_PASSWORD")
   if (identical(pass, "")) return(NULL)
-  if (!quiet) message("Using bitbucket password from envvar BITBUCKET_PAT")
+  if (!quiet) message("Using bitbucket password from envvar BITBUCKET_PASSWORD")
   pass
 }
 
 bitbucket_user <- function(quiet = TRUE) {
   user <- Sys.getenv("BITBUCKET_USER")
   if (identical(user, "")) return(NULL)
-  if (!quiet) message("Using bitbucket user from envvar BITBUCKET_PAT")
+  if (!quiet) message("Using bitbucket user from envvar BITBUCKET_USER")
   user
 }

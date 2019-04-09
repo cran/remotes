@@ -7,7 +7,7 @@
 install_bitbucket(repo, ref = "master", subdir = NULL,
   auth_user = bitbucket_user(), password = bitbucket_password(),
   host = "api.bitbucket.org/2.0", dependencies = NA,
-  upgrade = c("ask", "always", "never"), force = FALSE,
+  upgrade = c("default", "ask", "always", "never"), force = FALSE,
   quiet = FALSE, build = TRUE, build_opts = c("--no-resave-data",
   "--no-manual", "--no-build-vignettes"), repos = getOption("repos"),
   type = getOption("pkgType"), ...)
@@ -45,10 +45,12 @@ Can be a character vector (selecting from "Depends", "Imports",
 and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
 just check this package, not its dependencies).}
 
-\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
-which out of date packages to upgrade. For non-interactive sessions "ask" is
-equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
-correspond to "always" and "never" respectively.}
+\item{upgrade}{One of "default", "ask", "always", or "never". "default"
+respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,
+and falls back to "ask" if unset. "ask" prompts the user for which out of
+date packages to upgrade. For non-interactive sessions "ask" is equivalent
+to "always". \code{TRUE} and \code{FALSE} are also accepted and correspond to
+"always" and "never" respectively.}
 
 \item{force}{Force installation, even if the remote state has not changed
 since the previous install.}
@@ -79,11 +81,22 @@ the
 App Passwords documentation}. The App Password requires read-only access to
 your repositories and pull requests. Then store your password in the
 environment variable \code{BITBUCKET_PASSWORD} (e.g. \code{evelynwaugh:swordofhonour})
+
+Note that on Windows, authentication requires the "libcurl" download
+method. You can set the default download method via the
+\code{download.file.method} option:\preformatted{options(download.file.method = "libcurl")
+}
+
+In particular, if unset, RStudio sets the download method to "wininet".
+To override this, you might want to set it to "libcurl" in your
+R profile, see \link[base:Startup]{base::Startup}. The caveat of the "libcurl" method is
+that it does \emph{not} set the system proxies automatically, see
+"Setting Proxies" in \code{\link[utils:download.file]{utils::download.file()}}.
 }
 \examples{
 \dontrun{
 install_bitbucket("sulab/mygene.r@default")
-install_bitbucket("dannavarro/lsr-package")
+install_bitbucket("djnavarro/lsr")
 }
 }
 \seealso{

@@ -5,7 +5,7 @@
 \title{Install a package from GitLab}
 \usage{
 install_gitlab(repo, auth_token = gitlab_pat(), host = "gitlab.com",
-  dependencies = NA, upgrade = c("ask", "always", "never"),
+  dependencies = NA, upgrade = c("default", "ask", "always", "never"),
   force = FALSE, quiet = FALSE, build = TRUE,
   build_opts = c("--no-resave-data", "--no-manual",
   "--no-build-vignettes"), repos = getOption("repos"),
@@ -15,11 +15,11 @@ install_gitlab(repo, auth_token = gitlab_pat(), host = "gitlab.com",
 \item{repo}{Repository address in the format
 \code{username/repo[/subdir][@ref]}.}
 
-\item{auth_token}{To install from a private repo, generate a personal
-access token (PAT) in \url{https://github.com/settings/applications} and
-supply to this argument. This is safer than using a password because
-you can easily delete a PAT without affecting any others. Defaults to
-the \code{GITHUB_PAT} environment variable.}
+\item{auth_token}{To install from a private repo, generate a personal access
+token (PAT) in \url{https://gitlab.com/profile/personal_access_tokens} and
+supply to this argument. This is safer than using a password because you
+can easily delete a PAT without affecting any others. Defaults to the
+GITLAB_PAT environment variable.}
 
 \item{host}{GitLab API host to use. Override with your GitLab enterprise
 hostname, for example, \code{"gitlab.hostname.com"}.}
@@ -33,10 +33,12 @@ Can be a character vector (selecting from "Depends", "Imports",
 and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
 just check this package, not its dependencies).}
 
-\item{upgrade}{One of "ask", "always" or "never". "ask" prompts the user for
-which out of date packages to upgrade. For non-interactive sessions "ask" is
-equivalent to "always". \code{TRUE} and \code{FALSE} are also accepted and
-correspond to "always" and "never" respectively.}
+\item{upgrade}{One of "default", "ask", "always", or "never". "default"
+respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,
+and falls back to "ask" if unset. "ask" prompts the user for which out of
+date packages to upgrade. For non-interactive sessions "ask" is equivalent
+to "always". \code{TRUE} and \code{FALSE} are also accepted and correspond to
+"always" and "never" respectively.}
 
 \item{force}{Force installation, even if the remote state has not changed
 since the previous install.}

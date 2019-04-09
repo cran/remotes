@@ -2,13 +2,15 @@
 #' @importFrom utils compareVersion
 
 download <- function(path, url, auth_token = NULL, basic_auth = NULL,
-                     quiet = TRUE, auth_phrase = "access_token=") {
+                     quiet = TRUE, auth_phrase = "access_token=",
+                     headers = NULL) {
 
   real_url <- url
 
   if (!is.null(basic_auth)) {
-    str <- paste0("://", basic_auth$user, ":", basic_auth$password, "@")
-    real_url <- sub("://", str, url)
+    userpass <- paste0(basic_auth$user, ":", basic_auth$password)
+    auth <- paste("Basic", base64_encode(charToRaw(userpass)))
+    headers <- c(headers, Authorization = auth)
   }
 
   if (!is.null(auth_token)) {
@@ -18,60 +20,104 @@ download <- function(path, url, auth_token = NULL, basic_auth = NULL,
   }
 
   if (compareVersion(get_r_version(), "3.2.0") == -1) {
-    curl_download(real_url, path, quiet)
+    curl_download(real_url, path, quiet, headers)
 
   } else {
 
-    base_download(real_url, path, quiet)
+    base_download(real_url, path, quiet, headers)
   }
 
   path
  }
 
-base_download <- function(url, path, quiet) {
+base_download <- function(url, path, quiet, headers) {
 
-  suppressWarnings(
-    status <- utils::download.file(
-      url,
-      path,
-      method = download_method(),
-      quiet = quiet,
-      mode = "wb"
+  if (getRversion() < "3.6.0") {
+    if (!is.null(headers)) {
+      get("unlockBinding", baseenv())("makeUserAgent", asNamespace("utils"))
+      orig <- get("makeUserAgent", envir = asNamespace("utils"))
+      on.exit({
+        assign("makeUserAgent", orig, envir = asNamespace("utils"))
+        lockBinding("makeUserAgent", asNamespace("utils"))
+      }, add = TRUE)
+      ua <- orig(FALSE)
+
+      flathead <- paste0(names(headers), ": ", headers, collapse = "\r\n")
+      agent <- paste0(ua, "\r\n", flathead)
+      assign(
+        "makeUserAgent",
+        envir = asNamespace("utils"),
+        function(format = TRUE) {
+          if (format) {
+            paste0("User-Agent: ", agent, "\r\n")
+          } else {
+            agent
+          }
+        })
+    }
+
+    suppressWarnings(
+      status <- utils::download.file(
+        url,
+        path,
+        method = download_method(),
+        quiet = quiet,
+        mode = "wb"
+      )
     )
-  )
+  } else {
+    suppressWarnings(
+      status <- utils::download.file(
+        url,
+        path,
+        method = download_method(),
+        quiet = quiet,
+        mode = "wb",
+        headers = headers
+      )
+    )
+  }
 
   if (status != 0)  stop("Cannot download file from ", url, call. = FALSE)
 
   path
 }
 
+has_curl <- function() isTRUE(unname(capabilities("libcurl")))
+
 download_method <- function() {
-  
-  # R versions newer than 3.3.0 have correct default methods
-  if (compareVersion(get_r_version(), "3.3") == -1) {
-    
-    if (os_type() == "windows") {
-      "wininet"
-      
-    } else if (isTRUE(unname(capabilities("libcurl")))) {
-      "libcurl"
-      
-    } else {
-      "auto"
-    }
-    
+
+  user_option <- getOption("download.file.method")
+
+  if (!is.null(user_option)) {
+    ## The user wants what the user wants
+    user_option
+
+  } else if (has_curl()) {
+    ## If we have libcurl, it is usually the best option
+    "libcurl"
+
+  } else if (compareVersion(get_r_version(), "3.3") == -1 &&
+             os_type() == "windows") {
+    ## Before 3.3 we select wininet on Windows
+    "wininet"
+
   } else {
+    ## Otherwise this is probably hopeless, but let R select, and
+    ##  try something
     "auto"
   }
 }
 
-curl_download <- function(url, path, quiet) {
+curl_download <- function(url, path, quiet, headers) {
 
   if (!pkg_installed("curl")) {
     stop("The 'curl' package is required if R is older than 3.2.0")
   }
 
-  curl::curl_download(url, path, quiet = quiet, mode = "wb")
+  handle <- curl::new_handle()
+  if (!is.null(headers)) curl::handle_setheaders(handle, .list = headers)
+  curl::curl_download(url, path, quiet = quiet, mode = "wb", handle = handle)
 }
 
 true_download_method <- function(x) {
@@ -103,8 +149,13 @@ download_method_secure <- function() {
     # known good methods
     TRUE
   } else if (identical(method, "internal")) {
-    # if internal then see if were using windows internal with inet2
-    identical(Sys.info()[["sysname"]], "Windows") && utils::setInternet2(NA)
+    # only done before R 3.3
+    if (utils::compareVersion(get_r_version(), "3.3") == -1) {
+      # if internal then see if were using windows internal with inet2
+      identical(Sys.info()[["sysname"]], "Windows") && utils::setInternet2(NA)
+    } else {
+      FALSE
+    }
   } else {
     # method with unknown properties (e.g. "lynx") or unresolved auto
     FALSE

@@ -11,11 +11,13 @@ install <- function(pkgdir, dependencies, quiet, build, build_opts, upgrade,
     }
   }
 
+  pkg_name <- load_pkg_description(pkgdir)$package
+
   ## Check for circular dependencies. We need to know about the root
   ## of the install process.
   if (is_root_install()) on.exit(exit_from_root_install(), add = TRUE)
   if (check_for_circular_dependencies(pkgdir, quiet)) {
-    return(invisible(FALSE))
+    return(invisible(pkg_name))
   }
 
   install_deps(pkgdir, dependencies = dependencies, quiet = quiet,
@@ -37,16 +39,16 @@ install <- function(pkgdir, dependencies, quiet, build, build_opts, upgrade,
     ...
   )
 
-  pkg_name <- load_pkg_description(pkgdir)$package
   invisible(pkg_name)
 }
 
 
 safe_install_packages <- function(...) {
 
-  lib <- paste(.libPaths(), collapse = ":")
+  lib <- paste(.libPaths(), collapse = .Platform$path.sep)
 
-  if (has_package("crancache") && has_package("callr")) {
+  if (!is_standalone() &&
+      has_package("crancache") && has_package("callr")) {
     i.p <- "crancache" %::% "install_packages"
   } else {
     i.p <- utils::install.packages
@@ -55,7 +57,8 @@ safe_install_packages <- function(...) {
   with_envvar(
     c(R_LIBS = lib,
       R_LIBS_USER = lib,
-      R_LIBS_SITE = lib),
+      R_LIBS_SITE = lib,
+      RGL_USE_NULL = "TRUE"),
 
     # Set options(warn = 2) for this process and child processes, so that
     # warnings from `install.packages()` are converted to errors.
@@ -157,7 +160,7 @@ r_error_matches <- function(msg, str) {
 install_deps <- function(pkgdir = ".", dependencies = NA,
                          repos = getOption("repos"),
                          type = getOption("pkgType"),
-                         upgrade = c("ask", "always", "never"),
+                         upgrade = c("default", "ask", "always", "never"),
                          quiet = FALSE,
                          build = TRUE,
                          build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
