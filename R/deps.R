@@ -83,9 +83,7 @@ package_deps <- function(packages, dependencies = NA,
       is_cran = is_cran_remote,
       stringsAsFactors = FALSE
     ),
-    class = c("package_deps", "data.frame"),
-    repos = repos,
-    type = type
+    class = c("package_deps", "data.frame")
   )
 
   res$remote <- remote
@@ -117,7 +115,7 @@ local_package_deps <- function(pkgdir = ".", dependencies = NA) {
 
 dev_package_deps <- function(pkgdir = ".", dependencies = NA,
                              repos = getOption("repos"),
-                             type = getOption("pkgType"), ...) {
+                             type = getOption("pkgType")) {
 
   pkg <- load_pkg_description(pkgdir)
   repos <- c(repos, parse_additional_repositories(pkg))
@@ -135,7 +133,7 @@ dev_package_deps <- function(pkgdir = ".", dependencies = NA,
 
   combine_deps(
     package_deps(deps, repos = repos, type = type),
-    remote_deps(pkg, ...))
+    remote_deps(pkg))
 }
 
 combine_deps <- function(cran_deps, remote_deps) {
@@ -297,8 +295,10 @@ update.package_deps <- function(object,
   behind <- is.na(object$installed) | object$diff < CURRENT
 
   if (any(object$is_cran & !unavailable_on_cran & behind)) {
-    install_packages(object$package[object$is_cran & behind], repos = attr(object, "repos"),
-      type = attr(object, "type"), dependencies = dependencies, quiet = quiet, ...)
+    # get the first cran-like remote and use its repos and pkg_type
+    r <- object$remote[object$is_cran & behind][[1]]
+    install_packages(object$package[object$is_cran & behind], repos = r$repos,
+      type = r$pkg_type, dependencies = dependencies, quiet = quiet, ...)
   }
 
   install_remotes(object$remote[!object$is_cran & behind],
@@ -451,7 +451,8 @@ has_additional_repositories <- function(pkg) {
 
 parse_additional_repositories <- function(pkg) {
   if (has_additional_repositories(pkg)) {
-    strsplit(pkg[["additional_repositories"]], "[,[:space:]]+")[[1]]
+
+    strsplit(trim_ws(pkg[["additional_repositories"]]), "[,[:space:]]+")[[1]]
   }
 }
 
@@ -500,13 +501,13 @@ split_remotes <- function(x) {
 }
 
 
-remote_deps <- function(pkg, ...) {
+remote_deps <- function(pkg) {
   if (!has_dev_remotes(pkg)) {
     return(NULL)
   }
 
   dev_packages <- split_remotes(pkg[["remotes"]])
-  remote <- lapply(dev_packages, parse_one_remote, ...)
+  remote <- lapply(dev_packages, parse_one_remote)
 
   package <- vapply(remote, function(x) remote_package_name(x), character(1), USE.NAMES = FALSE)
   installed <- vapply(package, function(x) local_sha(x), character(1), USE.NAMES = FALSE)

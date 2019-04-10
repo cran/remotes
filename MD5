@@ -1,18 +1,18 @@
-22078569c57db52d394f2ee868c2b2a3 *DESCRIPTION
+c934ca43f2efc37c4bf8246ad1778f4f *DESCRIPTION
 0d3e99f3efc66c5cac5b155c0ba2d46d *NAMESPACE
-da918f572da2444fbe024a6dbaa33e58 *NEWS.md
+e20bf8b69fb9ff53fced664e0a02e29e *NEWS.md
 f8f3dfa9df5152a25ae99ea385c86128 *R/bioc.R
 e99c497edc8defd1d3ec219a5a59a8a3 *R/circular.R
 9d9ca0b83827953c41ff530e6cbd4787 *R/cran.R
 c0072fd0d4e37ef44c3dff3a6324d3a9 *R/dcf.R
 3ceeacd309a51828fcb2b647a6dd299f *R/decompress.R
-a6f90403084953910d58edfb967bb745 *R/deps.R
+7ff043cfcc5be36c9291427963a7d88a *R/deps.R
 68574532404a2be400bcf9afa83e547d *R/devel.R
 6dd7a948e981b31eeb646cc33da9af55 *R/download.R
 136cb1c0fb2c31d40979345dece0ed20 *R/git.R
 03413c949de79b6c8be2a739ca6c8607 *R/github.R
 f15069c415941db7b0132b258832c64d *R/install-bioc.R
-57c98ad222e360086ce0f51a442976e2 *R/install-bitbucket.R
+d7d5a59bb2908e34227e5dbc26013fa0 *R/install-bitbucket.R
 e49f4967ba03e2f76dce948ee01d52f2 *R/install-cran.R
 043ad6752d36e13c915c89cb57d4b3bd *R/install-dev.R
 29640fdaf539f9e1ab719a470df0be1c *R/install-git.R
@@ -23,7 +23,7 @@ a53362b507f32940657670f9ab051736 *R/install-remote.R
 fdaa65e694947f3c6945b4ed0ef593bd *R/install-svn.R
 2c6cc9c6add81b480adfc1fc28c52d0d *R/install-url.R
 f163386355a7c37169039f2cbfa7cdbf *R/install-version.R
-460bc36e17dc6060ccd38d274d89794c *R/install.R
+ab17625849a4524b000af6f521c3288a *R/install.R
 fa7b63d3784af0b5d8433cc754491976 *R/json.R
 9ae5ee8c24104237f6e1ebe28ffd9ca7 *R/package-deps.R
 9ce31d85e99a412fbd6846818e89e604 *R/package.R
@@ -34,8 +34,8 @@ fa7b63d3784af0b5d8433cc754491976 *R/json.R
 805bb0caed299ff38830883a400c4711 *README.md
 eab0d2c414056aeded6158b1add94d7c *build/vignette.rds
 458664f52739e0f183ec71ab2e2fb363 *inst/doc/dependencies.Rmd
-b91a65a6435d9f6635a14846cf1692de *inst/doc/dependencies.html
-08975edbfab4fcf6b19e6e9b00caf866 *inst/install-github.R
+2203d63c48f0ee0f0c9fb400874faa76 *inst/doc/dependencies.html
+75d296db291d135079bddbd13bb09963 *inst/install-github.R
 d510899e3095aab6e9c3653843f26f79 *inst/install-github.Rin
 aa3359cece6bcb09b88f674d89a28168 *man/available_packages.Rd
 6685953840d82215f930cab551f51b0e *man/bioc_install_repos.Rd
@@ -54,7 +54,7 @@ be59f9f99328c0547e53bd5ec8256423 *man/install_git.Rd
 a8c8785547d711616d96776f54aac1ae *man/install_svn.Rd
 22e5b5d7de3d2ff056dd62c2064e4325 *man/install_url.Rd
 0adbc8f5c792cae0ce3a3df91bf4f33e *man/install_version.Rd
-239642b057b95964ad4f419a06931ea2 *man/package_deps.Rd
+19a3a7732883dec618de6822dc6a5e2b *man/package_deps.Rd
 c3540997ad7e36c0ff2920b4ed34fb34 *man/parse-git-repo.Rd
 917a7a505b1c4afb81d2b0864cc94b93 *man/standardise_dep.Rd
 cb3b64ba92d38d6240fd50e2bc5a44e7 *man/update_packages.Rd
@@ -81,7 +81,7 @@ bdaced33278228c95e9a292d02c8254c *tests/testthat/invalidpkg/DESCRIPTION
 4eada705175155cafeecbd1c036da41a *tests/testthat/test-cran.R
 3c36f40435ba1b7fd6e0122c20eac356 *tests/testthat/test-dcf.R
 6054aeb74cec6e9b620434f75ec2186e *tests/testthat/test-decompress.R
-1962e1823ff1febb6895b752e9bc758d *tests/testthat/test-deps.R
+90603b817c29c694568fed4448a6e24d *tests/testthat/test-deps.R
 aac0c955b38e1701cd3ae9ec5831166b *tests/testthat/test-devel.R
 70e23f96d2789a48e1a13b5f0668ab49 *tests/testthat/test-download.R
 6f369d8f22089c43c25d370e51482622 *tests/testthat/test-git.R
@@ -108,4 +108,5 @@ d3602443c09b92ae7c63eb177989679f *tests/testthat/test-package-deps.R
 1c451f52012b44397bddf50f5dcfd84e *tests/testthat/test-submodule.R
 08a41508665d958b10d4fdca49ed4d34 *tests/testthat/test-system.R
 b0ba64c45d60cd4a9b7ed4030ff073ef *tests/testthat/test-utils.R
+886d9a6cd17d7f84ae6360ddd8ca0d58 *tests/testthat/withremotes/DESCRIPTION
 458664f52739e0f183ec71ab2e2fb363 *vignettes/dependencies.Rmd

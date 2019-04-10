@@ -21,7 +21,7 @@ install <- function(pkgdir, dependencies, quiet, build, build_opts, upgrade,
   }
 
   install_deps(pkgdir, dependencies = dependencies, quiet = quiet,
-    build = build, build_opts = build_opts, upgrade = upgrade, repos = repos, type = type, ...)
+    build = build, build_opts = build_opts, upgrade = upgrade, repos = repos, type = type)
 
   if (isTRUE(build)) {
     dir <- tempfile()
@@ -165,13 +165,11 @@ install_deps <- function(pkgdir = ".", dependencies = NA,
                          build = TRUE,
                          build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
                          ...) {
-
   packages <- dev_package_deps(
     pkgdir,
     repos = repos,
     dependencies = dependencies,
-    type = type,
-    ...
+    type = type
   )
 
   dep_deps <- if (isTRUE(dependencies)) NA else dependencies
