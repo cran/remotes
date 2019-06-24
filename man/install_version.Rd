@@ -7,7 +7,8 @@
 install_version(package, version = NULL, dependencies = NA,
   upgrade = c("default", "ask", "always", "never"), force = FALSE,
   quiet = FALSE, build = FALSE, build_opts = c("--no-resave-data",
-  "--no-manual", "--no-build-vignettes"), repos = getOption("repos"),
+  "--no-manual", "--no-build-vignettes"), build_manual = FALSE,
+  build_vignettes = FALSE, repos = getOption("repos"),
   type = "source", ...)
 }
 \arguments{
@@ -20,8 +21,9 @@ archived source tarballs and tries to install an older version instead.}
 
 \item{dependencies}{logical indicating whether to also install
     uninstalled packages which these packages depend on/link
-    to/import/suggest (and so on recursively).  Not used if \code{repos
-    = NULL}.  Can also be a character vector, a subset of
+    to/import/suggest (and so on recursively).
+    Not used if \code{repos = NULL}.
+    Can also be a character vector, a subset of
     \code{c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")}.
 
     Only supported if \code{lib} is of length one (or missing),
@@ -58,7 +60,11 @@ since the previous install.}
 
 \item{build}{If \code{TRUE} build the package before installing.}
 
-\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}}
+
+\item{build_manual}{If \code{FALSE}, don't build PDF manual ('--no-manual').}
+
+\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').
 is \code{TRUE}.}
 
 \item{repos}{

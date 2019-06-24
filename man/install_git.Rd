@@ -5,11 +5,12 @@
 \title{Install a package from a git repository}
 \usage{
 install_git(url, subdir = NULL, ref = NULL, branch = NULL,
-  credentials = NULL, git = c("auto", "git2r", "external"),
-  dependencies = NA, upgrade = c("default", "ask", "always", "never"),
-  force = FALSE, quiet = FALSE, build = TRUE,
+  credentials = git_credentials(), git = c("auto", "git2r",
+  "external"), dependencies = NA, upgrade = c("default", "ask",
+  "always", "never"), force = FALSE, quiet = FALSE, build = TRUE,
   build_opts = c("--no-resave-data", "--no-manual",
-  "--no-build-vignettes"), repos = getOption("repos"),
+  "--no-build-vignettes"), build_manual = FALSE,
+  build_vignettes = FALSE, repos = getOption("repos"),
   type = getOption("pkgType"), ...)
 }
 \arguments{
@@ -53,7 +54,11 @@ since the previous install.}
 
 \item{build}{If \code{TRUE} build the package before installing.}
 
-\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}}
+
+\item{build_manual}{If \code{FALSE}, don't build PDF manual ('--no-manual').}
+
+\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').
 is \code{TRUE}.}
 
 \item{repos}{A character vector giving repositories to use.}
@@ -66,6 +71,11 @@ is \code{TRUE}.}
 It is vectorised so you can install multiple packages with
 a single command. You do not need to have the \code{git2r} package,
 or an external git client installed.
+}
+\details{
+If you need to set git credentials for use in the \code{Remotes} field you can do
+so by placing the credentials in the \code{remotes.git_credentials} global
+option.
 }
 \examples{
 \dontrun{

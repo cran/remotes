@@ -25,9 +25,14 @@ install_version <- function(package, version = NULL,
                             force = FALSE,
                             quiet = FALSE,
                             build = FALSE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                            build_manual = FALSE, build_vignettes = FALSE,
                             repos = getOption("repos"),
                             type = "source",
                             ...) {
+
+  if (!identical(type, "source")) {
+    stop("`type` must be 'source' for `install_version()`", call. = FALSE)
+  }
 
   url <- download_version_url(package, version, repos, type)
   res <- install_url(url,
@@ -37,11 +42,13 @@ install_version <- function(package, version = NULL,
               quiet = quiet,
               build = build,
               build_opts = build_opts,
+              build_manual = build_manual,
+              build_vignettes = build_vignettes,
               repos = repos,
               type = type,
               ...)
 
-  lib <- list(...)$lib
+  lib <- list(...)$lib %||% .libPaths()
 
   # Remove Metadata from installed package
   add_metadata(

@@ -58,7 +58,7 @@ package_deps <- function(packages, dependencies = NA,
   repos <- fix_repositories(repos)
   cran <- available_packages(repos, type)
 
-  deps <- sort(find_deps(packages, available = cran, top_dep = dependencies))
+  deps <- find_deps(packages, available = cran, top_dep = dependencies)
 
   # Remove base packages
   inst <- utils::installed.packages()
@@ -243,6 +243,7 @@ update.package_deps <- function(object,
                            force = FALSE,
                            quiet = FALSE,
                            build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                           build_manual = FALSE, build_vignettes = FALSE,
                            repos = getOption("repos"),
                            type = getOption("pkgType"),
                            ...) {
@@ -267,6 +268,8 @@ update.package_deps <- function(object,
                     quiet = quiet,
                     build = build,
                     build_opts = build_opts,
+                    build_manual = build_manual,
+                    build_vignettes = build_vignettes,
                     repos = repos,
                     type = type,
                     ...)
@@ -287,6 +290,8 @@ update.package_deps <- function(object,
                     quiet = quiet,
                     build = build,
                     build_opts = build_opts,
+                    build_manual = build_manual,
+                    build_vignettes = build_vignettes,
                     repos = repos,
                     type = type,
                     ...)
@@ -308,6 +313,8 @@ update.package_deps <- function(object,
                   quiet = quiet,
                   build = build,
                   build_opts = build_opts,
+                  build_manual = build_manual,
+                  build_vignettes = build_vignettes,
                   repos = repos,
                   type = type,
                   ...)
@@ -425,6 +432,7 @@ update_packages <- function(packages = TRUE,
                             force = FALSE,
                             quiet = FALSE,
                             build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                            build_manual = FALSE, build_vignettes = FALSE,
                             repos = getOption("repos"),
                             type = getOption("pkgType"),
                             ...) {
@@ -440,6 +448,8 @@ update_packages <- function(packages = TRUE,
          quiet = quiet,
          build = build,
          build_opts = build_opts,
+         build_manual = build_manual,
+         build_vignettes = build_vignettes,
          repos = repos,
          type = type,
          ...)
@@ -501,9 +511,22 @@ split_remotes <- function(x) {
 }
 
 
+package_deps_new <- function(package = character(), installed = character(),
+  available = character(), diff = logical(), is_cran = logical(),
+  remote = list()) {
+
+  res <- structure(
+    data.frame(package = package, installed = installed, available = available, diff = diff, is_cran = is_cran, stringsAsFactors = FALSE),
+    class = c("package_deps", "data.frame")
+  )
+
+  res$remote = structure(remote, class = "remotes")
+  res
+}
+
 remote_deps <- function(pkg) {
   if (!has_dev_remotes(pkg)) {
-    return(NULL)
+    return(package_deps_new())
   }
 
   dev_packages <- split_remotes(pkg[["remotes"]])
@@ -516,20 +539,7 @@ remote_deps <- function(pkg) {
   diff <- ifelse(!is.na(diff) & diff, CURRENT, BEHIND)
   diff[is.na(installed)] <- UNINSTALLED
 
-  res <- structure(
-    data.frame(
-      package = package,
-      installed = installed,
-      available = available,
-      diff = diff,
-      is_cran = FALSE,
-      stringsAsFactors = FALSE
-      ),
-    class = c("package_deps", "data.frame"))
-
-  res$remote <- structure(remote, class = "remotes")
-
-  res
+  package_deps_new(package, installed, available, diff, is_cran = FALSE, remote)
 }
 
 
@@ -576,11 +586,11 @@ upgradable_packages <- function(x, upgrade, quiet, is_interactive = interactive(
       pkgs <- format_upgrades(x[behind, ])
 
       choices <- pkgs
-      if (length(choices) > 1) {
+      if (length(choices) > 0) {
         choices <- c("All", "CRAN packages only", "None", choices)
       }
 
-      res <- utils::select.list(choices, title = "These packages have more recent versions available.\nWhich would you like to update?", multiple = TRUE)
+      res <- select_menu(choices, title = "These packages have more recent versions available.\nWhich would you like to update?")
 
       if ("None" %in% res || length(res) == 0) {
         return(x[uninstalled, ])
@@ -601,6 +611,26 @@ upgradable_packages <- function(x, upgrade, quiet, is_interactive = interactive(
     }
   )
 }
+
+select_menu <- function(choices, title = NULL, msg = "Enter one or more numbers, or an empty line to skip updates:", width = getOption("width")) {
+  if (!is.null(title)) {
+    cat(title, "\n", sep = "")
+  }
+
+  nc <- length(choices)
+  op <- paste0(format(seq_len(nc)), ": ", choices)
+  fop <- format(op)
+  cat("", fop, "", sep = "\n")
+  repeat {
+    cat(msg, "\n", sep = "")
+    answer <- readLines(n = 1)
+    answer <- strsplit(answer, "[ ,]+")[[1]]
+    if (all(answer %in% seq_along(choices))) {
+      return(choices[as.integer(answer)])
+    }
+  }
+}
+
 
 msg_upgrades <- function(x, quiet) {
 

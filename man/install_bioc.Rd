@@ -2,14 +2,15 @@
 % Please edit documentation in R/install-bioc.R
 \name{install_bioc}
 \alias{install_bioc}
-\title{Install a package from a Bioconductor repository}
+\title{Install a development package from the Bioconductor git repository}
 \usage{
 install_bioc(repo, mirror = getOption("BioC_git",
   download_url("git.bioconductor.org/packages")), git = c("auto",
   "git2r", "external"), dependencies = NA, upgrade = c("default",
   "ask", "always", "never"), force = FALSE, quiet = FALSE,
   build = TRUE, build_opts = c("--no-resave-data", "--no-manual",
-  "--no-build-vignettes"), repos = getOption("repos"),
+  "--no-build-vignettes"), build_manual = FALSE,
+  build_vignettes = FALSE, repos = getOption("repos"),
   type = getOption("pkgType"), ...)
 }
 \arguments{
@@ -48,7 +49,11 @@ since the previous install.}
 
 \item{build}{If \code{TRUE} build the package before installing.}
 
-\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}
+\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}}
+
+\item{build_manual}{If \code{FALSE}, don't build PDF manual ('--no-manual').}
+
+\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').
 is \code{TRUE}.}
 
 \item{repos}{A character vector giving repositories to use.}
@@ -65,7 +70,9 @@ be used.
 It is vectorised so you can install multiple packages with
 a single command.
 
-'
+This is intended as an aid for Bioconductor developers. If you want to
+install the release version of a Bioconductor package one can use the
+\code{BiocManager} package.
 }
 \examples{
 \dontrun{

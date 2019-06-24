@@ -25,6 +25,7 @@ install_local <- function(path = ".", subdir = NULL,
                            quiet = FALSE,
                            build = !is_binary_pkg(path),
                            build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                           build_manual = FALSE, build_vignettes = FALSE,
                            repos = getOption("repos"),
                            type = getOption("pkgType"),
                            ...) {
@@ -37,6 +38,8 @@ install_local <- function(path = ".", subdir = NULL,
                   quiet = quiet,
                   build = build,
                   build_opts = build_opts,
+                  build_manual = build_manual,
+                  build_vignettes = build_vignettes,
                   repos = repos,
                   type = type,
                   ...)
@@ -54,7 +57,12 @@ remote_download.local_remote <- function(x, quiet = FALSE) {
   # Already downloaded - just need to copy to tempdir()
   bundle <- tempfile()
   dir.create(bundle)
-  file.copy(x$path, bundle, recursive = TRUE)
+  suppressWarnings(
+    res <- file.copy(x$path, bundle, recursive = TRUE)
+  )
+  if (!all(res)) {
+    stop("Could not copy `", x$path, "` to `", bundle, "`", call. = FALSE)
+  }
 
   # file.copy() creates directory inside of bundle
   dir(bundle, full.names = TRUE)[1]

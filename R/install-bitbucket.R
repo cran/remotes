@@ -54,6 +54,7 @@ install_bitbucket <- function(repo, ref = "master", subdir = NULL,
                               force = FALSE,
                               quiet = FALSE,
                               build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                              build_manual = FALSE, build_vignettes = FALSE,
                               repos = getOption("repos"),
                               type = getOption("pkgType"),
                               ...) {
@@ -68,14 +69,16 @@ install_bitbucket <- function(repo, ref = "master", subdir = NULL,
                   quiet = quiet,
                   build = build,
                   build_opts = build_opts,
+                  build_manual = build_manual,
+                  build_vignettes = build_vignettes,
                   repos = repos,
                   type = type,
                   ...)
 }
 
 bitbucket_remote <- function(repo, ref = "master", subdir = NULL,
-                              auth_user = NULL, password = NULL, sha = NULL,
-                              host = "api.bitbucket.org/2.0", ...) {
+                             auth_user = bitbucket_user(), password = bitbucket_password(),
+                             sha = NULL, host = "api.bitbucket.org/2.0", ...) {
 
   meta <- parse_git_repo(repo)
 
@@ -153,7 +156,7 @@ bitbucket_commit <- function(username, repo, ref = "master",
   tmp <- tempfile()
   download(tmp, url, basic_auth = auth)
 
-  fromJSONFile(tmp)
+  json$parse_file(tmp)
 }
 
 bitbucket_DESCRIPTION <- function(username, repo, subdir = NULL, ref = "master", host = "https://api.bitbucket.org/2.0", auth = NULL,...) {
@@ -186,7 +189,7 @@ bitbucket_download_url <- function(username, repo, ref = "master",
   tmp <- tempfile()
   download(tmp, url, basic_auth = auth)
 
-  paste0(build_url(fromJSONFile(tmp)$links$html$href, "get", ref), ".tar.gz")
+  paste0(build_url(json$parse_file(tmp)$links$html$href, "get", ref), ".tar.gz")
 }
 
 bitbucket_password <- function(quiet = TRUE) {

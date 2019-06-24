@@ -30,6 +30,7 @@ install_gitlab <- function(repo,
                            force = FALSE,
                            quiet = FALSE,
                            build = TRUE, build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+                           build_manual = FALSE, build_vignettes = FALSE,
                            repos = getOption("repos"),
                            type = getOption("pkgType"),
                            ...) {
@@ -43,6 +44,8 @@ install_gitlab <- function(repo,
                   quiet = quiet,
                   build = build,
                   build_opts = build_opts,
+                  build_manual = build_manual,
+                  build_vignettes = build_vignettes,
                   repos = repos,
                   type = type,
                   ...)
@@ -70,15 +73,15 @@ gitlab_remote <- function(repo,
 remote_download.gitlab_remote <- function(x, quiet = FALSE) {
   dest <- tempfile(fileext = paste0(".tar.gz"))
 
-  src_root <- build_url(x$host, x$username, x$repo)
-  src <- paste0(src_root, "/repository/archive.tar.gz?ref=", utils::URLencode(x$ref, reserved = TRUE))
+  src_root <- build_url(x$host, "api", "v4", "projects", utils::URLencode(paste0(x$username, "/", x$repo), reserved = TRUE))
+  src <- paste0(src_root, "/repository/archive.tar.gz?sha=", utils::URLencode(x$ref, reserved = TRUE))
 
   if (!quiet) {
     message("Downloading GitLab repo ", x$username, "/", x$repo, "@", x$ref,
             "\nfrom URL ", src)
   }
 
-  download(dest, src, auth_token = x$auth_token, auth_phrase = "private_token=")
+  download(dest, src, headers = c("Private-Token" = x$auth_token))
 }
 
 #' @export
@@ -106,16 +109,27 @@ remote_metadata.gitlab_remote <- function(x, bundle = NULL, source = NULL, sha =
 remote_package_name.gitlab_remote <- function(remote, ...) {
 
   tmp <- tempfile()
-  src <- build_url(
-    remote$host, remote$username, remote$repo, "raw",
-    remote$ref, remote$subdir, "DESCRIPTION")
+
+  src_root <- build_url(
+    remote$host, "api", "v4", "projects",
+    utils::URLencode(paste0(remote$username, "/", remote$repo),
+                     reserved = TRUE),
+    "repository")
+
+  src <- paste0(
+    src_root, "/files/",
+    ifelse(
+      is.null(remote$subdir),
+      "DESCRIPTION",
+      utils::URLencode(paste0(remote$subdir, "/DESCRIPTION"), reserved = TRUE)),
+    "/raw?ref=", remote$ref)
 
   dest <- tempfile()
-  res <- download(dest, src, auth_token = remote$auth_token, auth_phrase = "private_token=")
+  res <- download(dest, src, headers = c("Private-Token" = remote$auth_token))
 
   tryCatch(
     read_dcf(dest)$Package,
-    error = function(e) NA_character_)
+    error = function(e) remote$repo)
 }
 
 #' @export
@@ -135,9 +149,9 @@ gitlab_commit <- function(username, repo, ref = "master",
   url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", ref)
 
   tmp <- tempfile()
-  download(tmp, url, auth_token = pat, auth_phrase = "private_token=")
+  download(tmp, url, headers = c("Private-Token" = pat))
 
-  fromJSONFile(tmp)$id
+  json$parse_file(tmp)$id
 }
 
 #' Retrieve GitLab personal access token.
