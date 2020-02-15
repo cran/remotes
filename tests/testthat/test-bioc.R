@@ -39,12 +39,13 @@ test_that("internal map is current", {
   skip_if_offline()
   expect_equal(
     bioconductor$get_release_version(),
-    package_version("3.9"))
+    package_version("3.10"))
 })
 
 test_that("set of repos are correct", {
   # Compare our set of repos to the set returned by BiocManager.
   # They should match. If they don't we need to update the package.
+  skip_if_offline()
   skip_on_cran()
   skip_without_package("BiocManager")
   withr::local_envvar(list(BIOC_VERSION = NA, BIOC_MIRROR = NA))

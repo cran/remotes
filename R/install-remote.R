@@ -58,7 +58,7 @@ install_remote <- function(remote,
   source <- source_pkg(bundle, subdir = remote$subdir)
   on.exit(unlink(source, recursive = TRUE), add = TRUE)
 
-  update_submodules(source, quiet)
+  update_submodules(source, remote$subdir, quiet)
 
   add_metadata(source, remote_metadata(remote, bundle, source, remote_sha))
 
@@ -204,8 +204,8 @@ package2remote <- function(name, lib = .libPaths(), repos = getOption("repos"), 
   switch(x$RemoteType,
     standard = remote("cran",
       name = x$Package,
-      repos = x$RemoteRepos,
-      pkg_type = x$RemotePkgType,
+      repos = x$RemoteRepos %||% repos,
+      pkg_type = x$RemotePkgType %||% type,
       sha = x$RemoteSha),
     github = remote("github",
       host = x$RemoteHost,
@@ -234,7 +234,8 @@ package2remote <- function(name, lib = .libPaths(), repos = getOption("repos"), 
       url = trim_ws(x$RemoteUrl),
       ref = x$RemoteRef %||% x$RemoteBranch,
       sha = x$RemoteSha,
-      subdir = x$RemoteSubdir),
+      subdir = x$RemoteSubdir,
+      credentials = git_credentials()),
     bitbucket = remote("bitbucket",
       host = x$RemoteHost,
       repo = x$RemoteRepo,
@@ -260,7 +261,7 @@ package2remote <- function(name, lib = .libPaths(), repos = getOption("repos"), 
       url = trim_ws(x$RemoteUrl),
       subdir = x$RemoteSubdir,
       config = x$RemoteConfig,
-      pkg_type = x$RemotePkgType),
+      pkg_type = x$RemotePkgType %||% type),
     bioc_git2r = remote("bioc_git2r",
       mirror = x$RemoteMirror,
       repo = x$RemoteRepo,
@@ -273,7 +274,7 @@ package2remote <- function(name, lib = .libPaths(), repos = getOption("repos"), 
       release = x$RemoteRelease,
       sha = x$RemoteSha,
       branch = x$RemoteBranch),
-    stop(sprintf("can't convert package with RemoteType '%s' to remote", x$RemoteType))
+    stop(sprintf("can't convert package %s with RemoteType '%s' to remote", name, x$RemoteType))
   )
 }
 

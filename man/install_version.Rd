@@ -4,12 +4,21 @@
 \alias{install_version}
 \title{Install specified version of a CRAN package.}
 \usage{
-install_version(package, version = NULL, dependencies = NA,
-  upgrade = c("default", "ask", "always", "never"), force = FALSE,
-  quiet = FALSE, build = FALSE, build_opts = c("--no-resave-data",
-  "--no-manual", "--no-build-vignettes"), build_manual = FALSE,
-  build_vignettes = FALSE, repos = getOption("repos"),
-  type = "source", ...)
+install_version(
+  package,
+  version = NULL,
+  dependencies = NA,
+  upgrade = c("default", "ask", "always", "never"),
+  force = FALSE,
+  quiet = FALSE,
+  build = FALSE,
+  build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+  build_manual = FALSE,
+  build_vignettes = FALSE,
+  repos = getOption("repos"),
+  type = "source",
+  ...
+)
 }
 \arguments{
 \item{package}{package name}
@@ -60,7 +69,7 @@ since the previous install.}
 
 \item{build}{If \code{TRUE} build the package before installing.}
 
-\item{build_opts}{Options to pass to \code{R CMD build}, only used when \code{build}}
+\item{build_opts}{Options to pass to \verb{R CMD build}, only used when \code{build}}
 
 \item{build_manual}{If \code{FALSE}, don't build PDF manual ('--no-manual').}
 
@@ -91,13 +100,17 @@ if you do by running \code{devtools::has_devel} (you need the
 \code{devtools} package for this).
 }
 \seealso{
-Other package installation: \code{\link{install_bioc}},
-  \code{\link{install_bitbucket}},
-  \code{\link{install_cran}}, \code{\link{install_dev}},
-  \code{\link{install_github}},
-  \code{\link{install_gitlab}}, \code{\link{install_git}},
-  \code{\link{install_local}}, \code{\link{install_svn}},
-  \code{\link{install_url}}
+Other package installation: 
+\code{\link{install_bioc}()},
+\code{\link{install_bitbucket}()},
+\code{\link{install_cran}()},
+\code{\link{install_dev}()},
+\code{\link{install_github}()},
+\code{\link{install_gitlab}()},
+\code{\link{install_git}()},
+\code{\link{install_local}()},
+\code{\link{install_svn}()},
+\code{\link{install_url}()}
 }
 \author{
 Jeremy Stephens
