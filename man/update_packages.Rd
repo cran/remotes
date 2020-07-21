@@ -29,7 +29,16 @@ Can be a character vector (selecting from "Depends", "Imports",
 \code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
 "Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
 and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
-just check this package, not its dependencies).}
+just check this package, not its dependencies).
+
+The value "soft" means the same as \code{TRUE}, "hard" means the same as \code{NA}.
+
+You can also specify dependencies from one or more additional fields,
+common ones include:
+\itemize{
+\item Config/Needs/website - for dependencies used in building the pkgdown site.
+\item Config/Needs/coverage for dependencies used in calculating test coverage.
+}}
 
 \item{upgrade}{One of "default", "ask", "always", or "never". "default"
 respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,
@@ -38,8 +47,7 @@ date packages to upgrade. For non-interactive sessions "ask" is equivalent
 to "always". \code{TRUE} and \code{FALSE} are also accepted and correspond to
 "always" and "never" respectively.}
 
-\item{force}{Force installation, even if the remote state has not changed
-since the previous install.}
+\item{force}{Deprecated, this argument has no effect.}
 
 \item{quiet}{If \code{TRUE}, suppress output.}
 

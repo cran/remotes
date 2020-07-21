@@ -16,7 +16,7 @@ github_GET <- function(path, ..., host = "api.github.com", pat = github_pat(), u
     if (res$status_code >= 300) {
       stop(github_error(res))
     }
-    json$parse(rawToChar(res$content))
+    json$parse(raw_to_char_utf8(res$content))
   } else {
     tmp <- tempfile()
     download(tmp, url, auth_token = pat)
@@ -25,7 +25,7 @@ github_GET <- function(path, ..., host = "api.github.com", pat = github_pat(), u
   }
 }
 
-github_commit <- function(username, repo, ref = "master",
+github_commit <- function(username, repo, ref = "HEAD",
   host = "api.github.com", pat = github_pat(), use_curl = !is_standalone() && pkg_installed("curl"), current_sha = NULL) {
 
   url <- build_url(host, "repos", username, repo, "commits", utils::URLencode(ref, reserved = TRUE))
@@ -51,7 +51,7 @@ github_commit <- function(username, repo, ref = "master",
       stop(github_error(res))
     }
 
-    rawToChar(res$content)
+    raw_to_char_utf8(res$content)
   } else {
     tmp <- tempfile()
     on.exit(unlink(tmp), add = TRUE)
@@ -105,7 +105,7 @@ in_travis <- function() {
   identical(Sys.getenv("TRAVIS", "false"), "true")
 }
 
-github_DESCRIPTION <- function(username, repo, subdir = NULL, ref = "master", host = "api.github.com", ...,
+github_DESCRIPTION <- function(username, repo, subdir = NULL, ref = "HEAD", host = "api.github.com", ...,
   use_curl = !is_standalone() && pkg_installed("curl"), pat = github_pat()) {
 
   if (!is.null(subdir)) {
@@ -129,7 +129,7 @@ github_DESCRIPTION <- function(username, repo, subdir = NULL, ref = "master", ho
     if (res$status_code >= 300) {
       stop(github_error(res))
     }
-    rawToChar(res$content)
+    raw_to_char_utf8(res$content)
   } else {
     tmp <- tempfile()
     on.exit(unlink(tmp), add = TRUE)
@@ -150,7 +150,7 @@ github_error <- function(res) {
 
   ratelimit_reset <- .POSIXct(res_headers$`x-ratelimit-reset` %||% NA_character_, tz = "UTC")
 
-  error_details <- json$parse(rawToChar(res$content))$message
+  error_details <- json$parse(raw_to_char_utf8(res$content))$message
 
   guidance <- ""
   if (identical(as.integer(ratelimit_remaining), 0L)) {

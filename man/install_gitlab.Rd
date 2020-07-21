@@ -29,7 +29,7 @@ install_gitlab(
 \item{subdir}{subdirectory within repo that contains the R package.}
 
 \item{auth_token}{To install from a private repo, generate a personal access
-token (PAT) in \url{https://gitlab.com/profile/personal_access_tokens} and
+token (PAT) in \url{https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html} and
 supply to this argument. This is safer than using a password because you
 can easily delete a PAT without affecting any others. Defaults to the
 GITLAB_PAT environment variable.}
@@ -44,7 +44,16 @@ Can be a character vector (selecting from "Depends", "Imports",
 \code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
 "Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
 and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
-just check this package, not its dependencies).}
+just check this package, not its dependencies).
+
+The value "soft" means the same as \code{TRUE}, "hard" means the same as \code{NA}.
+
+You can also specify dependencies from one or more additional fields,
+common ones include:
+\itemize{
+\item Config/Needs/website - for dependencies used in building the pkgdown site.
+\item Config/Needs/coverage for dependencies used in calculating test coverage.
+}}
 
 \item{upgrade}{One of "default", "ask", "always", or "never". "default"
 respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,

@@ -11,7 +11,7 @@
 #' @param host GitLab API host to use. Override with your GitLab enterprise
 #'   hostname, for example, `"gitlab.hostname.com"`.
 #' @param auth_token To install from a private repo, generate a personal access
-#'   token (PAT) in \url{https://gitlab.com/profile/personal_access_tokens} and
+#'   token (PAT) in \url{https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html} and
 #'   supply to this argument. This is safer than using a password because you
 #'   can easily delete a PAT without affecting any others. Defaults to the
 #'   GITLAB_PAT environment variable.
@@ -57,7 +57,7 @@ gitlab_remote <- function(repo, subdir = NULL,
                        host = "gitlab.com", ...) {
 
   meta <- parse_git_repo(repo)
-  meta$ref <- meta$ref %||% "master"
+  meta$ref <- meta$ref %||% "HEAD"
 
   remote("gitlab",
     host = host,
@@ -146,7 +146,7 @@ format.gitlab_remote <- function(x, ...) {
   "GitLab"
 }
 
-gitlab_commit <- function(username, repo, ref = "master",
+gitlab_commit <- function(username, repo, ref = "HEAD",
   host = "gitlab.com", pat = gitlab_pat()) {
 
   url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", ref)
@@ -175,7 +175,7 @@ gitlab_pat <- function(quiet = TRUE) {
   return(NULL)
 }
 
-gitlab_project_id <- function(username, repo, ref = "master",
+gitlab_project_id <- function(username, repo, ref = "HEAD",
   host = "gitlab.com", pat = gitlab_pat()) {
 
   url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", ref)

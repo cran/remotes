@@ -13,12 +13,17 @@ download_version(
 )
 }
 \arguments{
-\item{package}{package name}
+\item{package}{Name of the package to install.}
 
-\item{version}{If the specified version is NULL or the same as the most
-recent version of the package, this function simply calls
-\code{\link[utils:install.packages]{utils::install.packages()}}. Otherwise, it looks at the list of
-archived source tarballs and tries to install an older version instead.}
+\item{version}{Version of the package to install.  Can either be a string giving the exact
+version required, or a specification in the same format as the parenthesized expressions used
+in package dependencies. One of the following formats:
+\itemize{
+\item An exact version required, as a string, e.g. \code{"0.1.13"}
+\item A comparison operator and a version, e.g. \code{">= 0.1.12"}
+\item Several criteria to satisfy, as a comma-separated string, e.g. \code{">= 1.12.0, < 1.14"}
+\item Several criteria to satisfy, as elements of a character vector, e.g. \code{c(">= 1.12.0", "< 1.14")}
+}}
 
 \item{repos}{
     character vector, the base URL(s) of the repositories

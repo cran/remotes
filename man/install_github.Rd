@@ -6,7 +6,7 @@
 \usage{
 install_github(
   repo,
-  ref = "master",
+  ref = "HEAD",
   subdir = NULL,
   auth_token = github_pat(quiet),
   host = "api.github.com",
@@ -25,13 +25,16 @@ install_github(
 }
 \arguments{
 \item{repo}{Repository address in the format
-\verb{username/repo[/subdir][@ref|#pull]}. Alternatively, you can
+\verb{username/repo[/subdir][@ref|#pull|@*release]}. Alternatively, you can
 specify \code{subdir} and/or \code{ref} using the respective parameters
-(see below); if both is specified, the values in \code{repo} take
+(see below); if both are specified, the values in \code{repo} take
 precedence.}
 
 \item{ref}{Desired git reference. Could be a commit, tag, or branch
-name, or a call to \code{\link[=github_pull]{github_pull()}}. Defaults to \code{"master"}.}
+name, or a call to \code{\link[=github_pull]{github_pull()}} or \code{\link[=github_release]{github_release()}}. Defaults to
+\code{"HEAD"}, which means the default branch on GitHub and for git remotes.
+See \href{https://help.github.com/en/github/administering-a-repository/setting-the-default-branch}{setting-the-default-branch}
+for more details.}
 
 \item{subdir}{subdirectory within repo that contains the R package.}
 
@@ -51,7 +54,16 @@ Can be a character vector (selecting from "Depends", "Imports",
 \code{TRUE} is shorthand for "Depends", "Imports", "LinkingTo" and
 "Suggests". \code{NA} is shorthand for "Depends", "Imports" and "LinkingTo"
 and is the default. \code{FALSE} is shorthand for no dependencies (i.e.
-just check this package, not its dependencies).}
+just check this package, not its dependencies).
+
+The value "soft" means the same as \code{TRUE}, "hard" means the same as \code{NA}.
+
+You can also specify dependencies from one or more additional fields,
+common ones include:
+\itemize{
+\item Config/Needs/website - for dependencies used in building the pkgdown site.
+\item Config/Needs/coverage for dependencies used in calculating test coverage.
+}}
 
 \item{upgrade}{One of "default", "ask", "always", or "never". "default"
 respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,
@@ -94,7 +106,7 @@ install_github("klutometis/roxygen")
 install_github("wch/ggplot2")
 install_github(c("rstudio/httpuv", "rstudio/shiny"))
 install_github(c("hadley/httr@v0.4", "klutometis/roxygen#142",
-  "mfrasca/r-logging/pkg"))
+  "r-lib/roxygen2@*release", "mfrasca/r-logging/pkg"))
 
 # To install from a private repo, use auth_token with a token
 # from https://github.com/settings/tokens. You only need the

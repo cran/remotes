@@ -7,11 +7,10 @@
 
 <!-- badges: start -->
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
-[![Linux Build Status](https://travis-ci.org/r-lib/remotes.svg?branch=master)](https://travis-ci.org/r-lib/remotes)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/github/r-lib/remotes?svg=true)](https://ci.appveyor.com/project/gaborcsardi/remotes)
-[![](https://www.r-pkg.org/badges/version/remotes)](https://www.r-pkg.org/pkg/remotes)
+[![R build status](https://github.com/r-lib/remotes/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/remotes/actions)
+[![Codecov test coverage](https://codecov.io/gh/r-lib/remotes/branch/master/graph/badge.svg)](https://codecov.io/gh/r-lib/remotes?branch=master)
 [![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/remotes)](https://www.r-pkg.org/pkg/remotes)
-[![Coverage Status](https://img.shields.io/codecov/c/github/r-lib/remotes/master.svg)](https://codecov.io/github/r-lib/remotes?branch=master)
+[![](https://www.r-pkg.org/badges/version/remotes)](https://www.r-pkg.org/pkg/remotes)
 <!-- badges: end -->
 
 Download and install R packages stored in GitHub, GitLab, Bitbucket, 
@@ -31,7 +30,7 @@ Indeed most of the code was copied over from `devtools`.
   * Install specific package versions from CRAN.
 * Supports [Bioconductor](https://bioconductor.org/) packages.
 * Supports the `Remotes` field in `DESCRIPTION`. See more in the
-  [dependencies](https://github.com/r-lib/remotes/blob/master/vignettes/dependencies.Rmd) vignette.
+  [dependencies](https://github.com/r-lib/remotes/blob/HEAD/vignettes/dependencies.Rmd) vignette.
 * Supports the `Additional_repositories` field in `DESCRIPTION`.
 * Can install itself from GitHub (see below).
 * Does not depend on other R packages.
@@ -47,35 +46,12 @@ Install the released version of remotes from CRAN:
 install.packages("remotes")
 ```
 
-You can also install remotes from GitHub. If you already have a previous
-version of remotes installed, you can use that to install the
-development version:
-
-```r
-remotes::install_github("r-lib/remotes")
-```
-
-Alternatively, you can also call the supplied `install-github.R` file
-directly, from within R:
-
-```r
-source("https://raw.githubusercontent.com/r-lib/remotes/master/install-github.R")$value("r-lib/remotes")
-```
-
-The <https://install-github.me> service is also based on remotes.
-You can use it to install any R package from GitHub via sourcing a URL.
-E.g. to install remotes itself:
-
-```r
-source("https://install-github.me/r-lib/remotes")
-```
-
 ## Usage
 
 Note that most of the examples here use GitHub. See below for other
 supported repository types.
 
-To install the latest version of a package in the `master` branch from
+To install the latest version of a package in the default branch from
 GitHub, you can use the `user/repo` form. Note that `user` can also be
 an organization:
 
