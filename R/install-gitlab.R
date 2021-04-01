@@ -9,7 +9,10 @@
 #' @param repo Repository address in the format
 #'   `username/repo[@@ref]`.
 #' @param host GitLab API host to use. Override with your GitLab enterprise
-#'   hostname, for example, `"gitlab.hostname.com"`.
+#'   hostname, for example, `"<PROTOCOL://>gitlab.hostname.com"`.
+#'   The PROTOCOL is required by packrat during RStudio Connect deployment. While
+#'   \link{install_gitlab} may work without, omitting it generally
+#'   leads to package restoration errors.
 #' @param auth_token To install from a private repo, generate a personal access
 #'   token (PAT) in \url{https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html} and
 #'   supply to this argument. This is safer than using a password because you
@@ -125,7 +128,7 @@ remote_package_name.gitlab_remote <- function(remote, ...) {
       is.null(remote$subdir),
       "DESCRIPTION",
       utils::URLencode(paste0(remote$subdir, "/DESCRIPTION"), reserved = TRUE)),
-    "/raw?ref=", remote$ref)
+    "/raw?ref=", utils::URLencode(remote$ref, reserved = TRUE))
 
   dest <- tempfile()
   res <- download(dest, src, headers = c("Private-Token" = remote$auth_token))
@@ -149,7 +152,7 @@ format.gitlab_remote <- function(x, ...) {
 gitlab_commit <- function(username, repo, ref = "HEAD",
   host = "gitlab.com", pat = gitlab_pat()) {
 
-  url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", ref)
+  url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", utils::URLencode(ref, reserved = TRUE))
 
   tmp <- tempfile()
   download(tmp, url, headers = c("Private-Token" = pat))
@@ -178,7 +181,7 @@ gitlab_pat <- function(quiet = TRUE) {
 gitlab_project_id <- function(username, repo, ref = "HEAD",
   host = "gitlab.com", pat = gitlab_pat()) {
 
-  url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", ref)
+  url <- build_url(host, "api", "v4", "projects", utils::URLencode(paste0(username, "/", repo), reserved = TRUE), "repository", "commits", utils::URLencode(ref, reserved = TRUE))
 
   tmp <- tempfile()
   download(tmp, url, headers = c("Private-Token" = pat))

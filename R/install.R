@@ -172,10 +172,9 @@ r_error_matches <- function(msg, str) {
 #' @inheritParams package_deps
 #' @param ... additional arguments passed to [utils::install.packages()].
 #' @param build If `TRUE` build the package before installing.
-#' @param build_opts Options to pass to `R CMD build`, only used when `build`
+#' @param build_opts Options to pass to `R CMD build`, only used when `build` is `TRUE`.
 #' @param build_manual If `FALSE`, don't build PDF manual ('--no-manual').
 #' @param build_vignettes If `FALSE`, don't build package vignettes ('--no-build-vignettes').
-#' is `TRUE`.
 #' @export
 #' @examples
 #' \dontrun{install_deps(".")}
@@ -215,9 +214,7 @@ install_deps <- function(pkgdir = ".", dependencies = NA,
 
 should_error_for_warnings <- function() {
 
-  force_suggests <- Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "true")
-
-  no_errors <- Sys.getenv("R_REMOTES_NO_ERRORS_FROM_WARNINGS", !config_val_to_logical(force_suggests))
+  no_errors <- Sys.getenv("R_REMOTES_NO_ERRORS_FROM_WARNINGS", "true")
 
   !config_val_to_logical(no_errors)
 }

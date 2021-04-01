@@ -6,11 +6,11 @@
 
 
 <!-- badges: start -->
-[![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 [![R build status](https://github.com/r-lib/remotes/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/remotes/actions)
 [![Codecov test coverage](https://codecov.io/gh/r-lib/remotes/branch/master/graph/badge.svg)](https://codecov.io/gh/r-lib/remotes?branch=master)
 [![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/remotes)](https://www.r-pkg.org/pkg/remotes)
 [![](https://www.r-pkg.org/badges/version/remotes)](https://www.r-pkg.org/pkg/remotes)
+[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 <!-- badges: end -->
 
 Download and install R packages stored in GitHub, GitLab, Bitbucket, 
@@ -211,16 +211,9 @@ It also uses some remotes specific options:
   mode and avoid loading its optional dependencies (curl, git2 and pkgbuild
   currently. See "Standalone mode" above.
 
-* Setting `R_REMOTES_NO_ERRORS_FROM_WARNINGS="true"` avoids stopping the
-  installation for warning messages. Warnings usually mean installation
-  errors, so by default remotes stops for a warning. However, sometimes
-  other warnings might happen, that could be ignored by setting this
-  environment variable.
-
-* Setting `_R_CHECK_FORCE_SUGGESTS_="false"` while
-  `R_REMOTES_NO_ERRORS_FROM_WARNINGS` is unset will also avoid stopping the
-  installation for error messages. This is done because a warning is generated
-  during installation when not all Suggested packages are not available.
+* Setting `R_REMOTES_NO_ERRORS_FROM_WARNINGS="false"` will cause warning
+  messages during calls to `install.packages()` to become errors. Often warning
+  messages are caused by dependencies failing to install.
 
 ## License
 

@@ -34,7 +34,7 @@ precedence.}
 \item{ref}{Desired git reference; could be a commit, tag, or branch name.
 Defaults to HEAD.}
 
-\item{subdir}{subdirectory within repo that contains the R package.}
+\item{subdir}{Subdirectory within repo that contains the R package.}
 
 \item{auth_user}{your account username if you're attempting to install
 a package hosted in a private repository (and your username is different
@@ -66,7 +66,7 @@ common ones include:
 \item Config/Needs/coverage for dependencies used in calculating test coverage.
 }}
 
-\item{upgrade}{One of "default", "ask", "always", or "never". "default"
+\item{upgrade}{Should package dependencies be upgraded? One of "default", "ask", "always", or "never". "default"
 respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,
 and falls back to "ask" if unset. "ask" prompts the user for which out of
 date packages to upgrade. For non-interactive sessions "ask" is equivalent
@@ -80,12 +80,11 @@ since the previous install.}
 
 \item{build}{If \code{TRUE} build the package before installing.}
 
-\item{build_opts}{Options to pass to \verb{R CMD build}, only used when \code{build}}
+\item{build_opts}{Options to pass to \verb{R CMD build}, only used when \code{build} is \code{TRUE}.}
 
 \item{build_manual}{If \code{FALSE}, don't build PDF manual ('--no-manual').}
 
-\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').
-is \code{TRUE}.}
+\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').}
 
 \item{repos}{A character vector giving repositories to use.}
 
@@ -102,7 +101,7 @@ To install from a private repo, or more generally, access the
 Bitbucket API with your own credentials, you will need to get an access
 token. You can create an access token following the instructions found in
 the
-\href{https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html}{Bitbucket
+\href{https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/}{Bitbucket
 App Passwords documentation}. The App Password requires read-only access to
 your repositories and pull requests. Then store your password in the
 environment variable \code{BITBUCKET_PASSWORD} (e.g. \code{evelynwaugh:swordofhonour})

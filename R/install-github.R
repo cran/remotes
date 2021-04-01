@@ -13,7 +13,7 @@
 #'   `"HEAD"`, which means the default branch on GitHub and for git remotes.
 #'   See [setting-the-default-branch](https://help.github.com/en/github/administering-a-repository/setting-the-default-branch)
 #'   for more details.
-#' @param subdir subdirectory within repo that contains the R package.
+#' @param subdir Subdirectory within repo that contains the R package.
 #' @param auth_token To install from a private repo, generate a personal
 #'   access token (PAT) in "https://github.com/settings/tokens" and
 #'   supply to this argument. This is safer than using a password because
@@ -45,6 +45,9 @@
 #' # GITHUB_PAT.
 #' install_github("hadley/private", auth_token = "abc")
 #'
+#' # To pass option arguments to `R CMD INSTALL` use `INSTALL_opts`. e.g. to
+#' install a package with source references and tests
+#' install_github("rstudio/shiny", INSTALL_opts = c("--with-keep.source", "--install-tests"))
 #' }
 install_github <- function(repo,
                            ref = "HEAD",

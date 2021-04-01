@@ -36,7 +36,7 @@ name, or a call to \code{\link[=github_pull]{github_pull()}} or \code{\link[=git
 See \href{https://help.github.com/en/github/administering-a-repository/setting-the-default-branch}{setting-the-default-branch}
 for more details.}
 
-\item{subdir}{subdirectory within repo that contains the R package.}
+\item{subdir}{Subdirectory within repo that contains the R package.}
 
 \item{auth_token}{To install from a private repo, generate a personal
 access token (PAT) in "https://github.com/settings/tokens" and
@@ -65,7 +65,7 @@ common ones include:
 \item Config/Needs/coverage for dependencies used in calculating test coverage.
 }}
 
-\item{upgrade}{One of "default", "ask", "always", or "never". "default"
+\item{upgrade}{Should package dependencies be upgraded? One of "default", "ask", "always", or "never". "default"
 respects the value of the \code{R_REMOTES_UPGRADE} environment variable if set,
 and falls back to "ask" if unset. "ask" prompts the user for which out of
 date packages to upgrade. For non-interactive sessions "ask" is equivalent
@@ -79,12 +79,11 @@ since the previous install.}
 
 \item{build}{If \code{TRUE} build the package before installing.}
 
-\item{build_opts}{Options to pass to \verb{R CMD build}, only used when \code{build}}
+\item{build_opts}{Options to pass to \verb{R CMD build}, only used when \code{build} is \code{TRUE}.}
 
 \item{build_manual}{If \code{FALSE}, don't build PDF manual ('--no-manual').}
 
-\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').
-is \code{TRUE}.}
+\item{build_vignettes}{If \code{FALSE}, don't build package vignettes ('--no-build-vignettes').}
 
 \item{repos}{A character vector giving repositories to use.}
 
@@ -114,6 +113,9 @@ install_github(c("hadley/httr@v0.4", "klutometis/roxygen#142",
 # GITHUB_PAT.
 install_github("hadley/private", auth_token = "abc")
 
+# To pass option arguments to `R CMD INSTALL` use `INSTALL_opts`. e.g. to
+install a package with source references and tests
+install_github("rstudio/shiny", INSTALL_opts = c("--with-keep.source", "--install-tests"))
 }
 }
 \seealso{

@@ -7,7 +7,7 @@
 #' `update()` method installs outdated or missing packages from CRAN.
 #'
 #' @param packages A character vector of package names.
-#' @param pkgdir path to a package directory, or to a package tarball.
+#' @param pkgdir Path to a package directory, or to a package tarball.
 #' @param dependencies Which dependencies do you want to check?
 #'   Can be a character vector (selecting from "Depends", "Imports",
 #'    "LinkingTo", "Suggests", or "Enhances"), or a logical vector.
@@ -24,7 +24,7 @@
 #'   - Config/Needs/website - for dependencies used in building the pkgdown site.
 #'   - Config/Needs/coverage for dependencies used in calculating test coverage.
 #' @param quiet If `TRUE`, suppress output.
-#' @param upgrade One of "default", "ask", "always", or "never". "default"
+#' @param upgrade Should package dependencies be upgraded? One of "default", "ask", "always", or "never". "default"
 #'   respects the value of the `R_REMOTES_UPGRADE` environment variable if set,
 #'   and falls back to "ask" if unset. "ask" prompts the user for which out of
 #'   date packages to upgrade. For non-interactive sessions "ask" is equivalent
@@ -144,7 +144,7 @@ dev_package_deps <- function(pkgdir = ".", dependencies = NA,
 
   res <- do.call(rbind, c(list(res), lapply(get_extra_deps(pkg, dependencies), extra_deps, pkg = pkg), stringsAsFactors = FALSE))
 
-  res[!duplicated(res$package, fromLast = TRUE), ]
+  res[is.na(res$package) | !duplicated(res$package, fromLast = TRUE), ]
 }
 
 combine_remote_deps <- function(cran_deps, remote_deps) {
@@ -420,7 +420,7 @@ find_deps <- function(packages, available = available_packages(),
 #'   Any additional values that don't match one of the standard dependency
 #'   types are filtered out.
 #'
-#' @seealso <http://r-pkgs.had.co.nz/description.html#dependencies> for
+#' @seealso <https://r-pkgs.org/description.html> for
 #' additional information on what each dependency type means.
 #' @keywords internal
 #' @export
@@ -532,6 +532,16 @@ parse_one_extra <- function(x, ...) {
   } else {
     stop("Malformed remote specification '", x, "'", call. = FALSE)
   }
+
+  if (grepl("@", type)) {
+    # Custom host
+    tah <- strsplit(type, "@", fixed = TRUE)[[1]]
+    type <- tah[1]
+    host <- tah[2]
+  } else {
+    host <- NULL
+  }
+
   tryCatch({
     # We need to use `environment(sys.function())` instead of
     # `asNamespace("remotes")` because when used as a script in
@@ -539,7 +549,11 @@ parse_one_extra <- function(x, ...) {
 
     fun <- get(paste0(tolower(type), "_remote"), mode = "function", inherits = TRUE)
 
-    res <- fun(repo, ...)
+    if (!is.null(host)) {
+      res <- fun(repo, host = host, ...)
+    } else {
+      res <- fun(repo, ...)
+    }
     }, error = function(e) stop("Unknown remote type: ", type, "\n  ", conditionMessage(e), call. = FALSE)
   )
   res
@@ -655,7 +669,7 @@ upgradable_packages <- function(x, upgrade, quiet, is_interactive = interactive(
   )
 }
 
-select_menu <- function(choices, title = NULL, msg = "Enter one or more numbers, or an empty line to skip updates:", width = getOption("width")) {
+select_menu <- function(choices, title = NULL, msg = "Enter one or more numbers, or an empty line to skip updates: ", width = getOption("width")) {
   if (!is.null(title)) {
     cat(title, "\n", sep = "")
   }
