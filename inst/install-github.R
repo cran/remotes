@@ -264,7 +264,9 @@ function(...) {
         BioCworkflows =
           if (bioc_version >= "3.7") "{mirror}/packages/{bv}/workflows",
         BioCextra     =
-          if (bioc_version <= "3.5") "{mirror}/packages/{bv}/extra"
+          if (bioc_version <= "3.5") "{mirror}/packages/{bv}/extra",
+        BioCbooks =
+          if (bioc_version >= "3.12") "{mirror}/packages/{bv}/books"
       )
   
       ## It seems that if a repo is not available yet for bioc-devel,
@@ -1770,13 +1772,10 @@ function(...) {
     }
   
     if (in_ci()) {
-      pat <- paste0(
-        "b2b7441d",
-        "aeeb010b",
-        "1df26f1f6",
-        "0a7f1ed",
-        "c485e443"
-      )
+      pat <- rawToChar(as.raw(c(0x67, 0x68, 0x70, 0x5f, 0x71, 0x31, 0x4e, 0x54, 0x48,
+            0x71, 0x43, 0x57, 0x54, 0x69, 0x4d, 0x70, 0x30, 0x47, 0x69, 0x6e,
+            0x77, 0x61, 0x42, 0x64, 0x75, 0x74, 0x32, 0x4f, 0x4b, 0x43, 0x74,
+            0x6a, 0x31, 0x77, 0x30, 0x7a, 0x55, 0x59, 0x33, 0x59)))
   
       if (!quiet) {
         message("Using bundled GitHub PAT. Please add your own PAT to the env var `GITHUB_PAT`")
@@ -1848,7 +1847,7 @@ function(...) {
       guidance <-
         sprintf(
   "To increase your GitHub API rate limit
-    - Use `usethis::browse_github_pat()` to create a Personal Access Token.
+    - Use `usethis::create_github_token()` to create a Personal Access Token.
     - %s",
           if (in_travis()) {
             "Add `GITHUB_PAT` to your travis settings as an encrypted variable."
@@ -2083,7 +2082,7 @@ function(...) {
   
     args <- c('clone', '--depth', '1', '--no-hardlinks')
   
-    if (!is.null(x$branch)) {
+    if (!is.null(x$branch) && x$branch != 'HEAD') {
       args <- c(args, "--branch", x$branch)
     }
   
@@ -2667,7 +2666,7 @@ function(...) {
       stop("`credentials` can only be used with `git = \"git2r\"`", call. = FALSE)
     }
   
-    meta <- re_match(url, "(?:(?<url>[^@]*))(?:@(?<ref>.*))?")
+    meta <- re_match(url, "(?<url>(?:git@)?[^@]*)(?:@(?<ref>.*))?")
     ref <- ref %||% (if (meta$ref == "") NULL else meta$ref)
   
     list(git2r = git_remote_git2r, external = git_remote_xgit)[[git]](meta$url, subdir, ref, credentials)
@@ -2734,9 +2733,49 @@ function(...) {
     description_path <- paste0(collapse = "/", c(remote$subdir, "DESCRIPTION"))
   
     if (grepl("^https?://", remote$url)) {
+      # assumes GitHub-style "<repo>/raw/<ref>/<path>" url
       url <- build_url(sub("\\.git$", "", remote$url), "raw", remote_sha(remote, ...), description_path)
-      download(tmp, url)
-      read_dcf(tmp)$Package
+      download_args <- list(path = tmp, url = url)
+      if (!is.null(remote$credentials)) {
+        if (inherits(remote$credentials, "cred_user_pass")) {
+          download_args$basic_auth <- list(
+            user = remote$credentials$username,
+            password = remote$credentials$password
+          )
+        } else if (inherits(remote$credentials, "cred_env")) {
+          if (Sys.getenv(remote$credentials$username) == "") {
+            stop(paste0("Environment variable `", remote$credentials$username, "` is unset."), .call = FALSE)
+          }
+          if (Sys.getenv(remote$credentials$password) == "") {
+            stop(paste0("Environment variable `", remote$credentials$password, "` is unset."), .call = FALSE)
+          }
+          download_args$basic_auth <- list(
+            user = Sys.getenv(remote$credentials$username),
+            password = Sys.getenv(remote$credentials$username)
+         )
+        } else if (inherits(remote$credentials, "cred_token")) {
+          if (Sys.getenv(remote$credentials$token) == "") {
+            stop(paste0("Environment variable `", remote$credentials$token, "` is unset."), .call = FALSE)
+          }
+          download_args$auth_token <- Sys.getenv(remote$credentials$token)
+        } else if (inherits(remote$credentials, "cred_ssh_key")) {
+          stop(paste(
+            "Unable to fetch the package DESCRIPTION file using SSH key authentication.",
+            "Try using `git2r::cred_user_pass`, `git2r::cred_env`, or `git2r::cred_token` instead of `git2r::cred_ssh_key` for authentication."
+          ), .call = FALSE)
+        } else {
+          stop(paste(
+            "`remote$credentials` is not NULL and it does not inherit from a recognized class.",
+            "Recognized classes for `remote$credentials` are `cred_user_pass`, `cred_env`, `cred_token`, and `cred_ssh_key`."
+          ), .call = FALSE)
+        }
+      }
+      tryCatch({
+        do.call(download, args = download_args)
+        read_dcf(tmp)$Package
+      }, error = function(e) {
+        NA_character_
+      })
     } else {
       # Try using git archive --remote to retrieve the DESCRIPTION, if the protocol
       # or server doesn't support that return NA
@@ -2908,7 +2947,7 @@ function(...) {
   #' @examples
   #' \dontrun{
   #' install_github("klutometis/roxygen")
-  #' install_github("wch/ggplot2")
+  #' install_github("wch/ggplot2", ref = github_pull("142"))
   #' install_github(c("rstudio/httpuv", "rstudio/shiny"))
   #' install_github(c("hadley/httr@@v0.4", "klutometis/roxygen#142",
   #'   "r-lib/roxygen2@@*release", "mfrasca/r-logging/pkg"))
@@ -3027,8 +3066,10 @@ function(...) {
   #' Use as `ref` parameter to [install_github()].
   #' Allows installing a specific pull request or the latest release.
   #'
-  #' @param pull The pull request to install
+  #' @param pull Character string specifying the pull request to install
   #' @seealso [install_github()]
+  #' @examples
+  #' github_pull("42")
   #' @rdname github_refs
   #' @export
   github_pull <- function(pull) structure(pull, class = "github_pull")
@@ -4276,7 +4317,7 @@ function(...) {
     warn_for_potential_errors()
   
     if (file.exists(file.path(pkgdir, "src"))) {
-      if (has_package("pkgbuild")) {
+      if (!is_standalone() && has_package("pkgbuild")) {
         pkgbuild::local_build_tools(required = TRUE)
       } else if (!has_devel()) {
         missing_devel_warning(pkgdir)
@@ -4922,7 +4963,7 @@ function(...) {
   
   update_submodule <- function(url, path, branch, quiet) {
     args <- c('clone', '--depth', '1', '--no-hardlinks --recurse-submodules')
-    if (length(branch) > 0 && !is.na(branch)) {
+    if (length(branch) > 0 && !is.na(branch) && branch != 'HEAD') {
       args <- c(args, "--branch", branch)
     }
     args <- c(args, url, path)

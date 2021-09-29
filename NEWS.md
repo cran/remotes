@@ -1,6 +1,16 @@
+# remotes 2.4.1
+
+* pkgbuild is no longer accidentally loaded even in standalone mode (#548)
+* The internal GitHub token used to increase rate limits has been regenerated.
+* Using `remote_package_name.git2r_remote` now passes credentials when looking up the package `DESCRIPTION` (#633, @rnorberg)
+* Using `remote_package_name.git2r_remote` and `remote_package_name.xgit_remote`, http responses returning an invalid `DESCRIPTION` or that redirect to another page will now fallback to return `NA` instead of throwing an error when trying to parse the unexpected content (#628, @dgkf).
+* Fix regex that breaks git protocol in `git_remote` (@niheaven #630).
+* Clarify `github_pull()` documentation (@ms609 #640).
+
 # remotes 2.4.0
 
 * Re-license as MIT. (#551)
+* Fix bug in install_bioc() when using version='devel'. The code will now pull from the git HEAD, not a branch named 'HEAD' (@bbimber, #612).
 
 * skip tests for `download.file(method = "internal")`, on R > 4.1, since that method is now defunct on those versions.
 

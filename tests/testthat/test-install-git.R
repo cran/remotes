@@ -146,7 +146,35 @@ test_that("install_git with command line git and full SHA ref", {
   expect_true(!is.na(remote$sha) && nzchar(remote$sha))
 })
 
+test_that("git_remote returns the url", {
+
+  skip_on_cran()
+
+  # works without ref
+  url <- "https://github.com/cran/falsy.git"
+  remote <- git_remote(url)
+  expect_equal(remote$url, "https://github.com/cran/falsy.git")
+
+  # works with ref
+  url <- "https://github.com/cran/falsy.git@master"
+  remote <- git_remote(url)
+  expect_equal(remote$url, "https://github.com/cran/falsy.git")
+  expect_equal(remote$ref, "master")
+
+  # works without ref (git protocol)
+  url <- "git@github.com:cran/falsy.git"
+  remote <- git_remote(url)
+  expect_equal(remote$url, "git@github.com:cran/falsy.git")
+
+  # works with ref (git protocal)
+  url <- "git@github.com:cran/falsy.git@master"
+  remote <- git_remote(url)
+  expect_equal(remote$url, "git@github.com:cran/falsy.git")
+  expect_equal(remote$ref, "master")
+})
+
 test_that("remote_package_name.git2r_remote returns the package name if it exists", {
+
   skip_on_cran()
   skip_if_offline()
   skip_if_not_installed("git2r")
@@ -165,9 +193,26 @@ test_that("remote_package_name.git2r_remote returns the package name if it exist
   url <- "https://github.com/igraph/rigraph.git@master"
   remote <- git_remote(url, git = "git2r")
   expect_equal(remote_package_name(remote), "igraph")
+
+  # works for gitlab urls
+  url <- "https://gitlab.com/r-lib-grp/test-pkg.git"
+  remote <- git_remote(url, git = "git2r")
+  expect_equal(remote_package_name(remote), "test123")
+
+  # safely returns NA when DESCRIPTION url is not accessible
+  # (condition emitted due to inaccessible git remote for remote_sha during testing)
+  url <- "https://gitlab.com/r-lib-grp/fake-private-repo.git"
+  remote <- git_remote(url, git = "git2r")
+  err <- tryCatch(remote_sha(remote), error = function(e) e)
+  expect_error(  # expect same error as calling remote_sha directly
+    expect_equal(remote_package_name(remote), NA_character_),
+    class = class(err),
+    label = conditionMessage(err)
+  )
 })
 
 test_that("remote_package_name.xgit_remote returns the package name if it exists", {
+
   skip_on_cran()
   skip_if_offline()
   if (is.null(git_path())) skip("git is not installed")
@@ -189,6 +234,7 @@ test_that("remote_package_name.xgit_remote returns the package name if it exists
 })
 
 test_that("remote_sha.xgit remote returns the SHA if it exists", {
+
   skip_on_cran()
   skip_if_offline()
   if (is.null(git_path())) skip("git is not installed")

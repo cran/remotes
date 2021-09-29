@@ -79,7 +79,7 @@ git_remote <- function(url, subdir = NULL, ref = NULL, credentials = git_credent
     stop("`credentials` can only be used with `git = \"git2r\"`", call. = FALSE)
   }
 
-  meta <- re_match(url, "(?:(?<url>[^@]*))(?:@(?<ref>.*))?")
+  meta <- re_match(url, "(?<url>(?:git@)?[^@]*)(?:@(?<ref>.*))?")
   ref <- ref %||% (if (meta$ref == "") NULL else meta$ref)
 
   list(git2r = git_remote_git2r, external = git_remote_xgit)[[git]](meta$url, subdir, ref, credentials)
@@ -146,9 +146,49 @@ remote_package_name.git2r_remote <- function(remote, ...) {
   description_path <- paste0(collapse = "/", c(remote$subdir, "DESCRIPTION"))
 
   if (grepl("^https?://", remote$url)) {
+    # assumes GitHub-style "<repo>/raw/<ref>/<path>" url
     url <- build_url(sub("\\.git$", "", remote$url), "raw", remote_sha(remote, ...), description_path)
-    download(tmp, url)
-    read_dcf(tmp)$Package
+    download_args <- list(path = tmp, url = url)
+    if (!is.null(remote$credentials)) {
+      if (inherits(remote$credentials, "cred_user_pass")) {
+        download_args$basic_auth <- list(
+          user = remote$credentials$username,
+          password = remote$credentials$password
+        )
+      } else if (inherits(remote$credentials, "cred_env")) {
+        if (Sys.getenv(remote$credentials$username) == "") {
+          stop(paste0("Environment variable `", remote$credentials$username, "` is unset."), .call = FALSE)
+        }
+        if (Sys.getenv(remote$credentials$password) == "") {
+          stop(paste0("Environment variable `", remote$credentials$password, "` is unset."), .call = FALSE)
+        }
+        download_args$basic_auth <- list(
+          user = Sys.getenv(remote$credentials$username),
+          password = Sys.getenv(remote$credentials$username)
+       )
+      } else if (inherits(remote$credentials, "cred_token")) {
+        if (Sys.getenv(remote$credentials$token) == "") {
+          stop(paste0("Environment variable `", remote$credentials$token, "` is unset."), .call = FALSE)
+        }
+        download_args$auth_token <- Sys.getenv(remote$credentials$token)
+      } else if (inherits(remote$credentials, "cred_ssh_key")) {
+        stop(paste(
+          "Unable to fetch the package DESCRIPTION file using SSH key authentication.",
+          "Try using `git2r::cred_user_pass`, `git2r::cred_env`, or `git2r::cred_token` instead of `git2r::cred_ssh_key` for authentication."
+        ), .call = FALSE)
+      } else {
+        stop(paste(
+          "`remote$credentials` is not NULL and it does not inherit from a recognized class.",
+          "Recognized classes for `remote$credentials` are `cred_user_pass`, `cred_env`, `cred_token`, and `cred_ssh_key`."
+        ), .call = FALSE)
+      }
+    }
+    tryCatch({
+      do.call(download, args = download_args)
+      read_dcf(tmp)$Package
+    }, error = function(e) {
+      NA_character_
+    })
   } else {
     # Try using git archive --remote to retrieve the DESCRIPTION, if the protocol
     # or server doesn't support that return NA
