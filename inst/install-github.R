@@ -113,7 +113,7 @@ function(...) {
       "3.5"  = package_version("3.8"),
       "3.6"  = package_version("3.10"),
       "4.0"  = package_version("3.12"),
-      "4.1"  = package_version("3.13")
+      "4.1"  = package_version("3.14")
     )
   
     # -------------------------------------------------------------------
@@ -2666,10 +2666,14 @@ function(...) {
       stop("`credentials` can only be used with `git = \"git2r\"`", call. = FALSE)
     }
   
-    meta <- re_match(url, "(?<url>(?:git@)?[^@]*)(?:@(?<ref>.*))?")
-    ref <- ref %||% (if (meta$ref == "") NULL else meta$ref)
+     url_parts = re_match( url,
+           "(?<protocol>[^/]*://)?(?<authhost>[^/]+)(?<path>[^@]*)(@(?<ref>.*))?")
   
-    list(git2r = git_remote_git2r, external = git_remote_xgit)[[git]](meta$url, subdir, ref, credentials)
+    ref <- ref %||% (if (url_parts$ref == "") NULL else url_parts$ref)
+  
+    url = paste0(url_parts$protocol, url_parts$authhost, url_parts$path)
+  
+    list(git2r = git_remote_git2r, external = git_remote_xgit)[[git]](url, subdir, ref, credentials)
   }
   
   
@@ -2928,7 +2932,8 @@ function(...) {
   #'   for more details.
   #' @param subdir Subdirectory within repo that contains the R package.
   #' @param auth_token To install from a private repo, generate a personal
-  #'   access token (PAT) in "https://github.com/settings/tokens" and
+  #'   access token (PAT) with at least repo scope in
+  #'   \url{https://github.com/settings/tokens} and
   #'   supply to this argument. This is safer than using a password because
   #'   you can easily delete a PAT without affecting any others. Defaults to
   #'   the `GITHUB_PAT` environment variable.
@@ -3201,7 +3206,8 @@ function(...) {
   #'   \link{install_gitlab} may work without, omitting it generally
   #'   leads to package restoration errors.
   #' @param auth_token To install from a private repo, generate a personal access
-  #'   token (PAT) in \url{https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html} and
+  #'   token (PAT) with at least read_api scope in
+  #'   \url{https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html} and
   #'   supply to this argument. This is safer than using a password because you
   #'   can easily delete a PAT without affecting any others. Defaults to the
   #'   GITLAB_PAT environment variable.
@@ -5056,7 +5062,7 @@ function(...) {
   DEFAULT_RSPM_REPO_ID <-  "1" # cran
   DEFAULT_RSPM <-  "https://packagemanager.rstudio.com"
   
-  #' Query the system requirements for a dev package (and its dependencies)
+  #' Query the system requirements for a package (and its dependencies)
   #'
   #' Returns a character vector of commands to run that will install system
   #' requirements for the queried operating system.
@@ -5068,7 +5074,8 @@ function(...) {
   #'   If `os_release` is `NULL`, `os` must consist of the operating system
   #'   and the version separated by a dash, e.g. `"ubuntu-18.04"`.
   #' @param path The path to the dev package's root directory.
-  #' @param package A CRAN package name. If not `NULL`, this is used and `path` is ignored.
+  #' @param package CRAN package name(s) to lookup system requirements for. If not
+  #'   `NULL`, this is used and `path` is ignored.
   #' @param curl The location of the curl binary on your system.
   #' @return A character vector of commands needed to install the system requirements for the package.
   #' @export
@@ -5104,16 +5111,18 @@ function(...) {
           "--silent",
           shQuote(sprintf("%s/sysreqs?all=false&pkgname=%s&distribution=%s&release=%s",
             rspm_repo_url,
-            package,
+            paste(package, collapse = "&pkgname="),
             os,
             os_release)
         )),
         stdout = TRUE
       )
       res <- json$parse(res)
-  
-      pre_install <- unique(unlist(c(res[["pre_install"]], lapply(res[["requirements"]], function(x) x[["requirements"]][["pre_install"]]))))
-      install_scripts <- unique(unlist(c(res[["install_scripts"]], lapply(res[["requirements"]], function(x) x[["requirements"]][["install_scripts"]]))))
+      if (!is.null(res$error)) {
+        stop(res$error)
+      }
+      pre_install <- unique(unlist(c(res[["pre_install"]], lapply(res[["requirements"]],  `[[`, c("requirements", "pre_install")))))
+      install_scripts <- unique(unlist(c(res[["install_scripts"]], lapply(res[["requirements"]], `[[`, c("requirements", "install_scripts")))))
     } else {
       desc_file <- normalizePath(file.path(path, "DESCRIPTION"), mustWork = FALSE)
       if (!file.exists(desc_file)) {
@@ -5135,6 +5144,9 @@ function(...) {
         stdout = TRUE
       )
       res <- json$parse(res)
+      if (!is.null(res$error)) {
+        stop(res$error)
+      }
   
       pre_install <- unique(unlist(c(res[["pre_install"]], lapply(res[["dependencies"]], `[[`, "pre_install"))))
       install_scripts <- unique(unlist(c(res[["install_scripts"]], lapply(res[["dependencies"]], `[[`, "install_scripts"))))
