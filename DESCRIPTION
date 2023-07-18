@@ -1,7 +1,7 @@
 Package: remotes
 Title: R Package Installation from Remote Repositories, Including
         'GitHub'
-Version: 2.4.2
+Version: 2.4.2.1
 Authors@R: c(
     person("Gábor", "Csárdi", , "csardi.gabor@gmail.com", role = c("aut", "cre")),
     person("Jim", "Hester", , "jim.hester@rstudio.com", role = "aut"),
@@ -29,7 +29,7 @@ RoxygenNote: 7.1.2
 SystemRequirements: Subversion for install_svn, git for install_git
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2021-11-30 00:20:20 UTC; jhester
+Packaged: 2023-07-18 12:27:30 UTC; hornik
 Author: Gábor Csárdi [aut, cre],
   Jim Hester [aut],
   Hadley Wickham [aut],
@@ -40,4 +40,4 @@ Author: Gábor Csárdi [aut, cre],
   Mango Solutions [cph]
 Maintainer: Gábor Csárdi <csardi.gabor@gmail.com>
 Repository: CRAN
-Date/Publication: 2021-11-30 14:00:02 UTC
+Date/Publication: 2023-07-18 13:49:25 UTC
