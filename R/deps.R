@@ -210,7 +210,7 @@ get_extra_deps <- function(pkg, dependencies) {
   dependencies <- intersect(dependencies, names(pkg))
 
   #remove standard dependencies
-  setdiff(dependencies, tolower(standardise_dep(TRUE)))
+  setdiff(dependencies, tolower(standardise_dep(c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"))))
 }
 
 #' @export
@@ -532,6 +532,8 @@ parse_one_extra <- function(x, ...) {
   } else {
     stop("Malformed remote specification '", x, "'", call. = FALSE)
   }
+
+  type = sub("^[.a-zA-Z0-9]+=", "", type)
 
   if (grepl("@", type)) {
     # Custom host

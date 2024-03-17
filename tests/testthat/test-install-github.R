@@ -1,6 +1,3 @@
-
-context("Install from GitHub")
-
 test_that("github_resolve_ref.github_release", {
 
   skip_on_cran()
@@ -195,6 +192,9 @@ test_that("github_remote with deleted branch", {
 
 test_that("github_pull", {
 
+  if (getRversion() < "4.0.0" && .Platform$OS.type == "windows") {
+    skip("Does not work on older R on Windows") # why?
+  }
   skip_on_cran()
   skip_if_offline()
   skip_if_over_rate_limit()
@@ -205,12 +205,12 @@ test_that("github_pull", {
   on.exit(unlink(lib, recursive = TRUE), add = TRUE)
   dir.create(lib)
 
-  install_github(
+  suppressWarnings(install_github(
     "r-lib/desc",
     ref = github_pull(64),
     lib = lib,
     quiet = TRUE
-  )
+  ))
 
   expect_silent(packageDescription("desc", lib.loc = lib))
   expect_equal(

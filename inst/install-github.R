@@ -75,6 +75,7 @@ function(...) {
   #' * 2020-03-22 get_matching_bioc_version() is now correct if the current
   #'              R version is not in the builtin mapping.
   #' * 2020-11-21 Update internal map for 3.12.
+  #' * 2023-05-08 Add 'books' repo.
   #'
   #' @name bioconductor
   #' @keywords internal
@@ -87,7 +88,12 @@ function(...) {
     # -------------------------------------------------------------------
     # Configuration that does not change often
   
-    config_url <- "https://bioconductor.org/config.yaml"
+    config_url <- function() {
+      Sys.getenv(
+        "R_BIOC_CONFIG_URL",
+        "https://bioconductor.org/config.yaml"
+      )
+    }
   
     builtin_map <- list(
       "2.1"  = package_version("1.6"),
@@ -113,7 +119,10 @@ function(...) {
       "3.5"  = package_version("3.8"),
       "3.6"  = package_version("3.10"),
       "4.0"  = package_version("3.12"),
-      "4.1"  = package_version("3.14")
+      "4.1"  = package_version("3.14"),
+      "4.2"  = package_version("3.16"),
+      "4.3"  = package_version("3.17"),
+      "4.4"  = package_version("3.18")
     )
   
     # -------------------------------------------------------------------
@@ -124,14 +133,21 @@ function(...) {
     version_map <- NULL
     yaml_config <- NULL
   
+    clear_cache <- function() {
+      devel_version <<- NULL
+      release_version <<- NULL
+      version_map <<- NULL
+      yaml_config <<- NULL
+    }
+  
     # -------------------------------------------------------------------
     # API
   
     get_yaml_config <- function(forget = FALSE) {
       if (forget || is.null(yaml_config)) {
-        new <- tryCatch(read_url(config_url), error = function(x) x)
+        new <- tryCatch(read_url(config_url()), error = function(x) x)
         if (inherits(new, "error")) {
-          http_url <- sub("^https", "http", config_url)
+          http_url <- sub("^https", "http", config_url())
           new <- tryCatch(read_url(http_url), error = function(x) x)
         }
         if (inherits(new, "error")) stop(new)
@@ -265,7 +281,7 @@ function(...) {
           if (bioc_version >= "3.7") "{mirror}/packages/{bv}/workflows",
         BioCextra     =
           if (bioc_version <= "3.5") "{mirror}/packages/{bv}/extra",
-        BioCbooks =
+        BioCbooks     =
           if (bioc_version >= "3.12") "{mirror}/packages/{bv}/books"
       )
   
@@ -291,7 +307,7 @@ function(...) {
     }
   
     .VERSION_SENTINEL <- local({
-      version <- package_version(list())
+      version <- package_version(character())
       class(version) <- c("unknown_version", class(version))
       version
     })
@@ -747,7 +763,7 @@ function(...) {
     dependencies <- intersect(dependencies, names(pkg))
   
     #remove standard dependencies
-    setdiff(dependencies, tolower(standardise_dep(TRUE)))
+    setdiff(dependencies, tolower(standardise_dep(c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"))))
   }
   
   #' @export
@@ -1069,6 +1085,8 @@ function(...) {
     } else {
       stop("Malformed remote specification '", x, "'", call. = FALSE)
     }
+  
+    type = sub("^[.a-zA-Z0-9]+=", "", type)
   
     if (grepl("@", type)) {
       # Custom host
@@ -1600,6 +1618,826 @@ function(...) {
       FALSE
     }
   }
+  # Contents of R/git-auth.R
+  
+  # nocov start
+  
+  gitcreds_get <- NULL
+  gitcreds_set <- NULL
+  gitcreds_delete <- NULL
+  gitcreds_list_helpers <- NULL
+  gitcreds_cache_envvar <- NULL
+  gitcreds_fill <- NULL
+  gitcreds_approve <- NULL
+  gitcreds_reject <- NULL
+  gitcreds_parse_output <- NULL
+  
+  gitcreds <- local({
+  
+  # ------------------------------------------------------------------------
+  # Public API
+  # ------------------------------------------------------------------------
+  
+  gitcreds_get <<- function(url = "https://github.com", use_cache = TRUE,
+                           set_cache = TRUE) {
+  
+    stopifnot(
+      is_string(url), has_no_newline(url),
+      is_flag(use_cache),
+      is_flag(set_cache)
+    )
+  
+    cache_ev <- gitcreds_cache_envvar(url)
+    if (use_cache && !is.null(ans <- gitcreds_get_cache(cache_ev))) {
+      return(ans)
+    }
+  
+    check_for_git()
+  
+    out <- gitcreds_fill(list(url = url), dummy = TRUE)
+    creds <- gitcreds_parse_output(out, url)
+  
+    if (set_cache) {
+      gitcreds_set_cache(cache_ev, creds)
+    }
+  
+    creds
+  }
+  
+  gitcreds_set <<- function(url = "https://github.com") {
+    if (!is_interactive()) {
+      throw(new_error(
+        "gitcreds_not_interactive_error",
+        message = "`gitcreds_set()` only works in interactive sessions"
+      ))
+    }
+    stopifnot(is_string(url), has_no_newline(url))
+    check_for_git()
+  
+    current <- tryCatch(
+      gitcreds_get(url, use_cache = FALSE, set_cache = FALSE),
+      gitcreds_no_credentials = function(e) NULL
+    )
+  
+    if (!is.null(current)) {
+      gitcreds_set_replace(url, current)
+    } else {
+      gitcreds_set_new(url)
+    }
+  
+    msg("-> Removing credentials from cache...")
+    gitcreds_delete_cache(gitcreds_cache_envvar(url))
+  
+    msg("-> Done.")
+    invisible()
+  }
+  
+  #' Replace credentials with new ones
+  #'
+  #' It only works interactively, because of `menu()` in `ack()` and
+  #' `readline()`.
+  #'
+  #' We need to set a username, it is compulsory for git credential.
+  #' 1. If there was one in the url, then we use that.
+  #' 2. Otherwise if git has a username configured for this URL, we use that.
+  #' 3. Otherwise we use the username in the credentials we are replacing.
+  #'
+  #' @param url URL.
+  #' @param current Must not be `NULL`, and it must contain a
+  #' `gitcreds` object. (Well, a named list, really.)
+  #' @noRd
+  #' @return Nothing.
+  
+  gitcreds_set_replace <- function(url, current) {
+  
+    # Potentially take username from the credential we are replacing
+    current_username <- current$username
+  
+    # Keep warning until there is a credential to replace.
+    # In case there are multiple credentials for the same URL.
+    while (!is.null(current)) {
+      if (!ack(url, current, "Replace")) {
+        throw(new_error("gitcreds_abort_replace_error"))
+      }
+  
+      msg("\n-> Removing current credentials...")
+      gitcreds_reject(current)
+  
+      current <- tryCatch(
+        gitcreds_get(url, use_cache = FALSE, set_cache = FALSE),
+        gitcreds_no_credentials = function(e) NULL
+      )
+      if (!is.null(current)) msg("\n!! Found more matching credentials!")
+    }
+  
+    msg("")
+    pat <- readline("? Enter new password or token: ")
+  
+    username <- get_url_username(url) %||%
+      gitcreds_username(url) %||%
+      current_username
+  
+    msg("-> Adding new credentials...")
+    gitcreds_approve(list(url = url, username = username, password = pat))
+  
+    invisible()
+  }
+  
+  #' Set new credentials
+  #'
+  #' This should not replace or remove any old credentials, but of course
+  #' we cannot be sure, because credential helpers pretty much do what they
+  #' want.
+  #'
+  #' We need to set a username, it is compulsory for git credential.
+  #' 1. If there was one in the url, then we use that.
+  #' 2. Otherwise if git has a username configured for this URL, we use that.
+  #' 3. Otherwise we use a default username.
+  #'
+  #' @param url URL.
+  #' @noRd
+  #' @return Nothing.
+  
+  gitcreds_set_new <- function(url) {
+    msg("\n")
+    pat <- readline("? Enter password or token: ")
+  
+    username <- get_url_username(url) %||%
+      gitcreds_username(url) %||%
+      default_username()
+  
+    msg("-> Adding new credentials...")
+    gitcreds_approve(list(url = url, username = username, password = pat))
+  
+    invisible()
+  }
+  
+  gitcreds_delete <<- function(url = "https://github.com") {
+    if (!is_interactive()) {
+      throw(new_error(
+        "gitcreds_not_interactive_error",
+        message = "`gitcreds_delete()` only works in interactive sessions"
+      ))
+    }
+    stopifnot(is_string(url))
+    check_for_git()
+  
+    current <- tryCatch(
+      gitcreds_get(url, use_cache = FALSE, set_cache = FALSE),
+      gitcreds_no_credentials = function(e) NULL
+    )
+  
+    if (is.null(current)) {
+      return(invisible(FALSE))
+    }
+  
+    if (!ack(url, current, "Delete")) {
+      throw(new_error("gitcreds_abort_delete_error"))
+    }
+  
+    msg("-> Removing current credentials...")
+    gitcreds_reject(current)
+  
+    msg("-> Removing credentials from cache...")
+    gitcreds_delete_cache(gitcreds_cache_envvar(url))
+  
+    msg("-> Done.")
+  
+    invisible(TRUE)
+  }
+  
+  gitcreds_list_helpers <<- function() {
+    check_for_git()
+    out <- git_run(c("config", "--get-all", "credential.helper"))
+    clear <- rev(which(out == ""))
+    if (length(clear)) out <- out[-(1:clear[1])]
+    out
+  }
+  
+  gitcreds_cache_envvar <<- function(url) {
+    pcs <- parse_url(url)
+    bad <- is.na(pcs$protocol) | is.na(pcs$host)
+    if (any(bad)) {
+      stop("Invalid URL(s): ", paste(url[bad], collapse = ", "))
+    }
+  
+    proto <- sub("^https?_$", "", paste0(pcs$protocol, "_"))
+    user <- ifelse(pcs$username != "", paste0(pcs$username, "_AT_"), "")
+    host0 <- sub("^api[.]github[.]com$", "github.com", pcs$host)
+    host1 <- gsub("[.:]+", "_", host0)
+    host <- gsub("[^a-zA-Z0-9_-]", "x", host1)
+  
+    slug1 <- paste0(proto, user, host)
+  
+    # fix the user name ambiguity, not that it happens often...
+    slug2 <- ifelse(grepl("^AT_", slug1), paste0("AT_", slug1), slug1)
+  
+    # env vars cannot start with a number
+    slug3 <- ifelse(grepl("^[0-9]", slug2), paste0("AT_", slug2), slug2)
+  
+    paste0("GITHUB_PAT_", toupper(slug3))
+  }
+  
+  gitcreds_get_cache <- function(ev) {
+    val <- Sys.getenv(ev, NA_character_)
+    if (is.na(val) && ev == "GITHUB_PAT_GITHUB_COM") {
+      val <- Sys.getenv("GITHUB_PAT", NA_character_)
+    }
+    if (is.na(val) && ev == "GITHUB_PAT_GITHUB_COM") {
+      val <- Sys.getenv("GITHUB_TOKEN", NA_character_)
+    }
+    if (is.na(val) || val == "") {
+      return(NULL)
+    }
+    if (val == "FAIL" || grepl("^FAIL:", val)) {
+      class <- strsplit(val, ":", fixed = TRUE)[[1]][2]
+      if (is.na(class)) class <- "gitcreds_no_credentials"
+      throw(new_error(class))
+    }
+  
+    unesc <- function(x) {
+      gsub("\\\\(.)", "\\1", x)
+    }
+  
+    # split on `:` that is not preceded by a `\`
+    spval <- strsplit(val, "(?<!\\\\):", perl = TRUE)[[1]]
+    spval0 <- unesc(spval)
+  
+    # Single field, then the token
+    if (length(spval) == 1) {
+      return(new_gitcreds(
+        protocol = NA_character_,
+        host = NA_character_,
+        username = NA_character_,
+        password = unesc(val)
+      ))
+    }
+  
+    # Two fields? Then it is username:password
+    if (length(spval) == 2) {
+      return(new_gitcreds(
+        protocol = NA_character_,
+        host = NA_character_,
+        username = spval0[1],
+        password = spval0[2]
+      ))
+    }
+  
+    # Otherwise a full record
+    if (length(spval) %% 2 == 1) {
+      warning("Invalid gitcreds credentials in env var `", ev, "`. ",
+              "Maybe an unescaped ':' character?")
+      return(NULL)
+    }
+  
+    creds <- structure(
+      spval0[seq(2, length(spval0), by = 2)],
+      names = spval[seq(1, length(spval0), by = 2)]
+    )
+    do.call("new_gitcreds", as.list(creds))
+  }
+  
+  gitcreds_set_cache <- function(ev, creds) {
+    esc <- function(x) gsub(":", "\\:", x, fixed = TRUE)
+    keys <- esc(names(creds))
+    vals <- esc(unlist(creds, use.names = FALSE))
+    value <- paste0(keys, ":", vals, collapse = ":")
+    do.call("set_env", list(structure(value, names = ev)))
+    invisible(NULL)
+  }
+  
+  gitcreds_delete_cache <- function(ev) {
+    Sys.unsetenv(ev)
+  }
+  
+  # ------------------------------------------------------------------------
+  # Raw git credential API
+  # ------------------------------------------------------------------------
+  
+  gitcreds_fill <<- function(input, args = character(), dummy = TRUE) {
+    if (dummy) {
+      helper <- paste0(
+        "credential.helper=\"! echo protocol=dummy;",
+        "echo host=dummy;",
+        "echo username=dummy;",
+        "echo password=dummy\""
+      )
+      args <- c(args, "-c", helper)
+    }
+  
+    gitcreds_run("fill", input, args)
+  }
+  
+  gitcreds_approve <<- function(creds, args = character()) {
+    gitcreds_run("approve", creds, args)
+  }
+  
+  gitcreds_reject <<- function(creds, args = character()) {
+    gitcreds_run("reject", creds, args)
+  }
+  
+  gitcreds_parse_output <<- function(txt, url) {
+    if (is.null(txt) || txt[1] == "protocol=dummy") {
+      throw(new_error("gitcreds_no_credentials", url = url))
+    }
+    nms <- sub("=.*$", "", txt)
+    vls <- sub("^[^=]+=", "", txt)
+    structure(as.list(vls), names = nms, class = "gitcreds")
+  }
+  
+  #' Run a `git credential` command
+  #'
+  #' @details
+  #' We set the [gitcreds_env()] environment variables, to avoid dialog boxes
+  #' from some credential helpers and also validation that potentiall needs
+  #' an internet connection.
+  #'
+  #' @param command Command name, e.g. `"fill"`.
+  #' @param input Named list of input, see
+  #' https://git-scm.com/docs/git-credential#IOFMT
+  #' @param args Extra command line arguments, added after `git` and
+  #' _before_ `command`, to allow `git -c ... fill`.
+  #' @return Standard output, line by line.
+  #'
+  #' @noRd
+  #' @seealso [git_run()].
+  
+  gitcreds_run <- function(command, input, args = character()) {
+    env <- gitcreds_env()
+    oenv <- set_env(env)
+    on.exit(set_env(oenv), add = TRUE)
+  
+    stdin <- create_gitcreds_input(input)
+  
+    git_run(c(args, "credential", command), input = stdin)
+  }
+  
+  # ------------------------------------------------------------------------
+  # Helpers specific to git
+  # ------------------------------------------------------------------------
+  
+  #' Run a git command
+  #'
+  #' @details
+  #' Currently we don't set the credential specific environment variables
+  #' here, and credential helpers invoked by `git` behave the same way as
+  #' they would from the command line.
+  #'
+  #' ## Errors
+  #'
+  #' On error `git_run()` returns an error with class `git_error` and
+  #' also `gitcreds_error`. The error object includes
+  #' * `args` the command line arguments,
+  #' * `status`: the exit status of the command,
+  #' * `stdout`: the standard output of the command, line by line.
+  #' * `stderr`: the standard error of the command, line by line.
+  #'
+  #' @param args Command line arguments.
+  #' @param input The standard input (the `input` argument of [system2()].
+  #' @noRd
+  #' @return Standard output, line by line.
+  
+  git_run <- function(args, input = NULL) {
+    stderr_file <- tempfile("gitcreds-stderr-")
+    on.exit(unlink(stderr_file, recursive = TRUE), add = TRUE)
+    out <- tryCatch(
+      suppressWarnings(system2(
+        "git", args, input = input, stdout = TRUE, stderr = stderr_file
+      )),
+      error = function(e) NULL
+    )
+  
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0) {
+      throw(new_error(
+        "git_error",
+        args = args,
+        stdout = out,
+        status = attr(out, "status"),
+        stderr = read_file(stderr_file)
+      ))
+    }
+  
+    out
+  }
+  
+  #' Request confirmation from the user, to replace or delete credentials
+  #'
+  #' This function only works in interactive sessions.
+  #'
+  #' @param url URL to delete or set new credentials for.
+  #' @param current The current credentials.
+  #' @return `FALSE` is the user changed their mind, to keep the current
+  #' credentials. `TRUE` for replacing/deleting them.
+  #'
+  #' @noRd
+  #' @seealso [gitcreds_set()].
+  
+  ack <- function(url, current, what = "Replace") {
+    msg("\n-> Your current credentials for ", squote(url), ":\n")
+    msg(paste0(format(current, header = FALSE), collapse = "\n"), "\n")
+  
+    choices <- c(
+      "Keep these credentials",
+      paste(what, "these credentials"),
+      if (has_password(current)) "See the password / token"
+    )
+  
+    repeat {
+      ch <- utils::menu(title = "-> What would you like to do?", choices)
+  
+      if (ch == 1) return(FALSE)
+      if (ch == 2) return(TRUE)
+  
+      msg("\nCurrent password: ", current$password, "\n\n")
+    }
+  }
+  
+  #' Whether a `gitcreds` credential has a non-empty `password`
+  #'
+  #' This is usually `TRUE`.
+  #'
+  #' @param creds `gitcreds`
+  #' @noRd
+  #' @return `TRUE` is there is a `password`
+  
+  has_password <- function(creds) {
+    is_string(creds$password) && creds$password != ""
+  }
+  
+  #' Create a string that can be passed as standard input to `git credential`
+  #' commands
+  #'
+  #' @param args Usually a `gitcreds` object, but can be a named list in
+  #' general. This is a format: https://git-scm.com/docs/git-credential#IOFMT
+  #' @noRd
+  #' @return String.
+  
+  create_gitcreds_input <- function(args) {
+    paste0(
+      paste0(names(args), "=", args, collapse = "\n"),
+      "\n\n"
+    )
+  }
+  
+  #' Environment to set for all `git credential` commands.
+  #' @noRd
+  #' @return Named character vector.
+  
+  gitcreds_env <- function() {
+    # Avoid interactivity and validation with some common credential helpers
+    c(
+      GCM_INTERACTIVE = "Never",
+      GCM_MODAL_PROMPT = "false",
+      GCM_VALIDATE = "false",
+      GCM_GUI_PROMPT = "false"
+    )
+  }
+  
+  #' Check if `git` is installed and can run
+  #'
+  #' If not installed, a `gitcreds_nogit_error` is thrown.
+  #'
+  #' @noRd
+  #' @return Nothing
+  
+  check_for_git <- function() {
+    # This is simpler than Sys.which(), and also less fragile
+    has_git <- tryCatch({
+      suppressWarnings(system2(
+        "git", "--version",
+        stdout = TRUE, stderr = null_file()
+      ))
+      TRUE
+    }, error = function(e) FALSE)
+  
+    if (!has_git) throw(new_error("gitcreds_nogit_error"))
+  }
+  
+  #' Query the `username` to use for `git config credential`
+  #'
+  #' @details
+  #' The current working directory matters for this command, as you can
+  #' configure `username` in a local `.git/config` file (via
+  #' `git config --local`).
+  #'
+  #' @param url URL to query the username for, or `NULL`. If not `NULL`,
+  #' then we first try to query an URL-specific username. See
+  #' https://git-scm.com/docs/gitcredentials for more about URL-specific
+  #' credential config
+  #' @noRd
+  #' @return A string with the username, or `NULL` if no default was found.
+  
+  gitcreds_username <- function(url = NULL) {
+    gitcreds_username_for_url(url) %||% gitcreds_username_generic()
+  }
+  
+  gitcreds_username_for_url <- function(url) {
+    if (is.null(url)) return(NULL)
+    tryCatch(
+      git_run(c(
+        "config", "--get-urlmatch", "credential.username", shQuote(url)
+      )),
+      git_error = function(err) {
+        if (err$status == 1) NULL else throw(err)
+      }
+    )
+  }
+  
+  gitcreds_username_generic <- function() {
+    tryCatch(
+      git_run(c("config", "credential.username")),
+      git_error = function(err) {
+        if (err$status == 1) NULL else throw(err)
+      }
+    )
+  }
+  
+  #' User name to use when creating a credential, if there is nothing better
+  #'
+  #' These user names are typical for some git tools, e.g.
+  #' [Git Credential Manager for Windows](http://microsoft.github.io/Git-Credential-Manager-for-Windows/)
+  #' (`manager`) and
+  #' [Git Credential Manager Core](https://github.com/Microsoft/Git-Credential-Manager-Core)
+  #' (`manager-core`).
+  #'
+  #' @noRd
+  #' @return Character string
+  
+  default_username <- function() {
+    "PersonalAccessToken"
+  }
+  
+  new_gitcreds <- function(...) {
+    structure(list(...), class = "gitcreds")
+  }
+  
+  # ------------------------------------------------------------------------
+  # Errors
+  # ------------------------------------------------------------------------
+  
+  gitcred_errors <- function() {
+    c(
+      git_error = "System git failed",
+      gitcreds_nogit_error = "Could not find system git",
+      gitcreds_not_interactive_error = "gitcreds needs an interactive session",
+      gitcreds_abort_replace_error = "User aborted updating credentials",
+      gitcreds_abort_delete_error = "User aborted deleting credentials",
+      gitcreds_no_credentials = "Could not find any credentials",
+      gitcreds_no_helper = "No credential helper is set",
+      gitcreds_multiple_helpers =
+        "Multiple credential helpers, only using the first",
+      gitcreds_unknown_helper = "Unknown credential helper, cannot list credentials"
+    )
+  }
+  
+  new_error <- function(class, ..., message = "", call. = TRUE, domain = NULL) {
+    if (message == "") message <- gitcred_errors()[[class]]
+    message <- .makeMessage(message, domain = domain)
+    cond <- list(message = message, ...)
+    if (call.) cond$call <- sys.call(-1)
+    class(cond) <- c(class, "gitcreds_error", "error", "condition")
+    cond
+  }
+  
+  new_warning <- function(class, ..., message = "", call. = TRUE, domain = NULL) {
+    if (message == "") message <- gitcred_errors()[[class]]
+    message <- .makeMessage(message, domain = domain)
+    cond <- list(message = message, ...)
+    if (call.) cond$call <- sys.call(-1)
+    class(cond) <- c(class, "gitcreds_warning", "warning", "condition")
+    cond
+  }
+  
+  throw <- function(cond) {
+    cond
+    if ("error" %in% class(cond)) {
+      stop(cond)
+    } else if ("warning" %in% class(cond)) {
+      warning(cond)
+    } else if ("message" %in% class(cond)) {
+      message(cond)
+    } else {
+      signalCondition(cond)
+    }
+  }
+  
+  # ------------------------------------------------------------------------
+  # Genetic helpers
+  # ------------------------------------------------------------------------
+  
+  #' Set/remove env var and return the old values
+  #'
+  #' @param envs Named character vector or list of env vars to set. `NA`
+  #' values will un-set an env var.
+  #' @noRd
+  #' @return Character vector, the old values of the supplied environment
+  #' variables, `NA` for the ones that were not set.
+  
+  set_env <- function(envs) {
+    current <- Sys.getenv(names(envs), NA_character_, names = TRUE)
+    na <- is.na(envs)
+    if (any(na)) {
+      Sys.unsetenv(names(envs)[na])
+    }
+    if (any(!na)) {
+      do.call("Sys.setenv", as.list(envs[!na]))
+    }
+    invisible(current)
+  }
+  
+  #' Get the user name from a `protocol://username@host/path` URL.
+  #'
+  #' @param url URL
+  #' @noRd
+  #' @return String or `NULL` if `url` does not have a username.
+  
+  get_url_username <- function(url) {
+    nm <- parse_url(url)$username
+    if (nm == "") NULL else nm
+  }
+  
+  #' Parse URL
+  #'
+  #' It does not parse query parameters, as we don't deal with them here.
+  #' The port number is included in the host name, if present.
+  #'
+  #' @param url Character vector of one or more URLs.
+  #' @noRd
+  #' @return Data frame with string columns: `protocol`, `username`,
+  #' `password`, `host`, `path`.
+  
+  parse_url <- function(url) {
+    re_url <- paste0(
+      "^(?<protocol>[a-zA-Z0-9]+)://",
+      "(?:(?<username>[^@/:]+)(?::(?<password>[^@/]+))?@)?",
+      "(?<host>[^/]+)",
+      "(?<path>.*)$"            # don't worry about query params here...
+    )
+  
+    mch <- re_match(url, re_url)
+    mch[, setdiff(colnames(mch), c(".match", ".text")), drop = FALSE]
+  }
+  
+  is_string <- function(x) {
+    is.character(x) && length(x) == 1 && !is.na(x)
+  }
+  
+  is_flag <- function(x) {
+    is.logical(x) && length(x) == 1 && !is.na(x)
+  }
+  
+  has_no_newline <- function(url) {
+    ! grepl("\n", url, fixed = TRUE)
+  }
+  
+  # From the rematch2 package
+  
+  re_match <- function(text, pattern, perl = TRUE, ...) {
+  
+    stopifnot(is.character(pattern), length(pattern) == 1, !is.na(pattern))
+    text <- as.character(text)
+  
+    match <- regexpr(pattern, text, perl = perl, ...)
+  
+    start  <- as.vector(match)
+    length <- attr(match, "match.length")
+    end    <- start + length - 1L
+  
+    matchstr <- substring(text, start, end)
+    matchstr[ start == -1 ] <- NA_character_
+  
+    res <- data.frame(
+      stringsAsFactors = FALSE,
+      .text = text,
+      .match = matchstr
+    )
+  
+    if (!is.null(attr(match, "capture.start"))) {
+  
+      gstart  <- attr(match, "capture.start")
+      glength <- attr(match, "capture.length")
+      gend    <- gstart + glength - 1L
+  
+      groupstr <- substring(text, gstart, gend)
+      groupstr[ gstart == -1 ] <- NA_character_
+      dim(groupstr) <- dim(gstart)
+  
+      res <- cbind(groupstr, res, stringsAsFactors = FALSE)
+    }
+  
+    names(res) <- c(attr(match, "capture.names"), ".text", ".match")
+    res
+  }
+  
+  null_file <- function() {
+    if (get_os() == "windows") "nul:" else "/dev/null"
+  }
+  
+  get_os <- function() {
+    if (.Platform$OS.type == "windows") {
+      "windows"
+    } else if (Sys.info()[["sysname"]] == "Darwin") {
+      "macos"
+    } else if (Sys.info()[["sysname"]] == "Linux") {
+      "linux"
+    } else {
+      "unknown"
+    }
+  }
+  
+  `%||%` <- function(l, r) if (is.null(l)) r else l
+  
+  #' Like [message()], but print to standard output in interactive
+  #' sessions
+  #'
+  #' To avoid red output in RStudio, RGui, and R.app.
+  #'
+  #' @inheritParams message
+  #' @noRd
+  #' @return Nothing
+  
+  msg <- function(..., domain = NULL, appendLF = TRUE) {
+    cnd <- .makeMessage(..., domain = domain, appendLF = appendLF)
+    withRestarts(muffleMessage = function() NULL, {
+      signalCondition(simpleMessage(cnd))
+      output <- default_output()
+      cat(cnd, file = output, sep = "")
+    })
+    invisible()
+  }
+  
+  #' Where to print messages to
+  #'
+  #' If the session is not interactive, then it potentially matters
+  #' whether we print to stdout or stderr, so we print to stderr.
+  #'
+  #' The same applies when there is a sink for stdout or stderr.
+  #'
+  #' @noRd
+  #' @return The connection to print to.
+  
+  default_output <- function() {
+    if (is_interactive() && no_active_sink()) stdout() else stderr()
+  }
+  
+  no_active_sink <- function() {
+    # See ?sink.number for the explanation
+    sink.number("output") == 0 && sink.number("message") == 2
+  }
+  
+  #' Smarter `interactive()`
+  #'
+  #' @noRd
+  #' @return Logical scalar.
+  
+  is_interactive <- function() {
+    opt <- getOption("rlib_interactive")
+    opt2 <- getOption("rlang_interactive")
+    if (isTRUE(opt)) {
+      TRUE
+    } else if (identical(opt, FALSE)) {
+      FALSE
+    } else if (isTRUE(opt2)) {
+      TRUE
+    } else if (identical(opt2, FALSE)) {
+      FALSE
+    } else if (tolower(getOption("knitr.in.progress", "false")) == "true") {
+      FALSE
+    } else if (identical(Sys.getenv("TESTTHAT"), "true")) {
+      FALSE
+    } else {
+      base::interactive()
+    }
+  }
+  
+  #' Squote wrapper to avoid smart quotes
+  #'
+  #' @inheritParams sQuote
+  #' @inherit sQuote return
+  #' @noRd
+  #' @return Character vector.
+  
+  squote <- function(x) {
+    old <- options(useFancyQuotes = FALSE)
+    on.exit(options(old), add = TRUE)
+    sQuote(x)
+  }
+  
+  #' Read all of a file
+  #'
+  #' @param path File to read.
+  #' @param ... Passed to [readChar()].
+  #' @noRd
+  #' @return String.
+  
+  read_file <- function(path, ...) {
+    readChar(path, nchars = file.info(path)$size, ...)
+  }
+  
+  environment()
+  })
+  
+  # nocov end
   # Contents of R/git.R
   
   # Extract the commit hash from a git archive. Git archives include the SHA1
@@ -1765,20 +2603,35 @@ function(...) {
       pat <- Sys.getenv(env_var)
       if (nzchar(pat)) {
         if (!quiet) {
-          message("Using github PAT from envvar ", env_var)
+          message("Using github PAT from envvar ", env_var, ". ",
+                  "Use `gitcreds::gitcreds_set()` and unset ", env_var,
+                  " in .Renviron (or elsewhere) if you want to use the more ",
+                  "secure git credential store instead.")
         }
         return(pat)
       }
     }
   
+    pat <- tryCatch(
+      gitcreds_get()$password,
+      error = function(e) ""
+    )
+    if (nzchar(pat)) {
+      if (!quiet) {
+        message("Using GitHub PAT from the git credential store.")
+      }
+      return(pat)
+    }
+  
     if (in_ci()) {
-      pat <- rawToChar(as.raw(c(0x67, 0x68, 0x70, 0x5f, 0x71, 0x31, 0x4e, 0x54, 0x48,
-            0x71, 0x43, 0x57, 0x54, 0x69, 0x4d, 0x70, 0x30, 0x47, 0x69, 0x6e,
-            0x77, 0x61, 0x42, 0x64, 0x75, 0x74, 0x32, 0x4f, 0x4b, 0x43, 0x74,
-            0x6a, 0x31, 0x77, 0x30, 0x7a, 0x55, 0x59, 0x33, 0x59)))
+      pat <- rawToChar(as.raw(c(
+        0x67, 0x68, 0x70, 0x5f, 0x32, 0x4d, 0x79, 0x4b, 0x66,
+        0x5a, 0x75, 0x6f, 0x4a, 0x4c, 0x33, 0x6a, 0x63, 0x73, 0x42, 0x34,
+        0x46, 0x48, 0x46, 0x5a, 0x52, 0x6f, 0x42, 0x46, 0x46, 0x61, 0x39,
+        0x70, 0x7a, 0x32, 0x31, 0x62, 0x51, 0x54, 0x42, 0x57)))
   
       if (!quiet) {
-        message("Using bundled GitHub PAT. Please add your own PAT to the env var `GITHUB_PAT`")
+        message("Using bundled GitHub PAT. Please add your own PAT using `gitcreds::gitcreds_set()`")
       }
   
       return(pat)
@@ -1852,7 +2705,7 @@ function(...) {
           if (in_travis()) {
             "Add `GITHUB_PAT` to your travis settings as an encrypted variable."
           } else {
-            "Use `usethis::edit_r_environ()` and add the token as `GITHUB_PAT`."
+            "Use `gitcreds::gitcreds_set()` to add the token."
           }
         )
     } else if (identical(as.integer(res$status_code), 404L)) {
@@ -2157,6 +3010,7 @@ function(...) {
     }, error = function(e) NA_character_)
   }
   
+  #' @export
   remote_sha.bioc_xgit_remote <- function(remote, ...) {
     url <- paste0(remote$mirror, "/", remote$repo)
     ref <- remote$branch
@@ -2551,7 +3405,7 @@ function(...) {
     pkg_urls <- unlist(strsplit(url_fields, "[[:space:]]*,[[:space:]]*"))
   
     # Remove trailing "/issues" from the BugReports URL
-    pkg_urls <- sub("/issues$", "", pkg_urls)
+    pkg_urls <- sub("/issues/?$", "", pkg_urls)
   
     valid_domains <- c("github[.]com", "gitlab[.]com", "bitbucket[.]org")
   
@@ -3202,7 +4056,7 @@ function(...) {
   #'   `username/repo[@@ref]`.
   #' @param host GitLab API host to use. Override with your GitLab enterprise
   #'   hostname, for example, `"<PROTOCOL://>gitlab.hostname.com"`.
-  #'   The PROTOCOL is required by packrat during RStudio Connect deployment. While
+  #'   The PROTOCOL is required by packrat during Posit Connect deployment. While
   #'   \link{install_gitlab} may work without, omitting it generally
   #'   leads to package restoration errors.
   #' @param auth_token To install from a private repo, generate a personal access
@@ -3672,7 +4526,10 @@ function(...) {
   #' @export
   remote_sha <- function(remote, ...) UseMethod("remote_sha")
   
+  #' @export
   remote_package_name.default <- function(remote, ...) remote$repo
+  
+  #' @export
   remote_sha.default <- function(remote, ...) NA_character_
   
   different_sha <- function(remote_sha, local_sha) {
@@ -3704,7 +4561,7 @@ function(...) {
           sha = NA_character_))
     }
   
-    if (is.null(x$RemoteType) || x$RemoteType == "cran") {
+    if (is.null(x$RemoteType) || x$RemoteType %in% c("cran", "standard", "any")) {
   
       # Packages installed with install.packages() or locally without remotes
       return(remote("cran",
@@ -4754,7 +5611,7 @@ function(...) {
   
   load_pkg_description <- function(path) {
   
-    path <- normalizePath(path)
+    path <- normalizePath(path, mustWork = TRUE)
   
     if (!is_dir(path)) {
       dir <- tempfile()
@@ -4890,6 +5747,13 @@ function(...) {
     params
   }
   
+  # Contents of R/remotes-package.R
+  #' @keywords internal
+  "_PACKAGE"
+  
+  ## usethis namespace: start
+  ## usethis namespace: end
+  NULL
   # Contents of R/submodule.R
   parse_submodules <- function(file) {
     if (grepl("\n", file)) {
@@ -5060,7 +5924,7 @@ function(...) {
   }
   # Contents of R/system_requirements.R
   DEFAULT_RSPM_REPO_ID <-  "1" # cran
-  DEFAULT_RSPM <-  "https://packagemanager.rstudio.com"
+  DEFAULT_RSPM <-  "https://packagemanager.posit.co"
   
   #' Query the system requirements for a package (and its dependencies)
   #'
@@ -5109,6 +5973,7 @@ function(...) {
         curl,
         args = c(
           "--silent",
+          "-L",
           shQuote(sprintf("%s/sysreqs?all=false&pkgname=%s&distribution=%s&release=%s",
             rspm_repo_url,
             paste(package, collapse = "&pkgname="),
@@ -5133,6 +5998,7 @@ function(...) {
         curl,
         args = c(
           "--silent",
+          "-L",
           "--data-binary",
           shQuote(paste0("@", desc_file)),
           shQuote(sprintf("%s/sysreqs?distribution=%s&release=%s&suggests=true",
@@ -5160,7 +6026,7 @@ function(...) {
   supported_os_versions <- function() {
     list(
       #"debian" = c("8", "9"),
-      "ubuntu" = c("14.04", "16.04", "18.04", "20.04"),
+      "ubuntu" = c("14.04", "16.04", "18.04", "20.04", "22.04"),
       "centos" = c("6", "7", "8"),
       "redhat" = c("6", "7", "8"),
       "opensuse" = c("42.3", "15.0"),

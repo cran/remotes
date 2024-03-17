@@ -1,6 +1,3 @@
-
-context("GitHub")
-
 test_that("github_pat", {
   withr::local_envvar(c(GITHUB_PAT="badcafe"))
 
@@ -8,9 +5,17 @@ test_that("github_pat", {
   expect_message(github_pat(quiet = FALSE), "Using github PAT from envvar GITHUB_PAT")
 
   # Check standard GITHUB_PAT
-  withr::with_envvar(c(GITHUB_PAT = NA, GITHUB_TOKEN = NA, CI = NA), {
-     expect_equal(github_pat(), NULL)
-  })
+  withr::with_envvar(
+    c(
+      GITHUB_PAT = NA,
+      GITHUB_TOKEN = NA,
+      CI = NA,
+      GITHUB_PAT_GITHUB_COM = "FAIL" # make gitcreds fail
+    ),
+    {
+      expect_equal(github_pat(), NULL)
+    }
+  )
 
   # Check for embedded token
   withr::with_envvar(c(GITHUB_PAT=NA, CI="true"), {
@@ -82,13 +87,13 @@ test_that("github_error", {
   # Test without the TRAVIS envvar set
   withr::with_envvar(c(TRAVIS = NA), {
     err <- github_error(list(headers = "", status_code = "304", content = charToRaw('{"message": "foobar"}')))
-    expect_known_output(conditionMessage(err), test_path("github-error-local.txt"), print = TRUE)
+    expect_snapshot(conditionMessage(err))
   })
 
   # Test with the TRAVIS envvar set
   withr::with_envvar(c(TRAVIS = "true"), {
     err <- github_error(list(headers = "", status_code = "304", content = charToRaw('{"message": "foobar"}')))
-    expect_known_output(conditionMessage(err), test_path("github-error-travis.txt"), print = TRUE)
+    expect_snapshot(conditionMessage(err))
   })
 
 })

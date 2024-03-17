@@ -79,20 +79,35 @@ github_pat <- function(quiet = TRUE) {
     pat <- Sys.getenv(env_var)
     if (nzchar(pat)) {
       if (!quiet) {
-        message("Using github PAT from envvar ", env_var)
+        message("Using github PAT from envvar ", env_var, ". ",
+                "Use `gitcreds::gitcreds_set()` and unset ", env_var,
+                " in .Renviron (or elsewhere) if you want to use the more ",
+                "secure git credential store instead.")
       }
       return(pat)
     }
   }
 
+  pat <- tryCatch(
+    gitcreds_get()$password,
+    error = function(e) ""
+  )
+  if (nzchar(pat)) {
+    if (!quiet) {
+      message("Using GitHub PAT from the git credential store.")
+    }
+    return(pat)
+  }
+
   if (in_ci()) {
-    pat <- rawToChar(as.raw(c(0x67, 0x68, 0x70, 0x5f, 0x71, 0x31, 0x4e, 0x54, 0x48,
-          0x71, 0x43, 0x57, 0x54, 0x69, 0x4d, 0x70, 0x30, 0x47, 0x69, 0x6e,
-          0x77, 0x61, 0x42, 0x64, 0x75, 0x74, 0x32, 0x4f, 0x4b, 0x43, 0x74,
-          0x6a, 0x31, 0x77, 0x30, 0x7a, 0x55, 0x59, 0x33, 0x59)))
+    pat <- rawToChar(as.raw(c(
+      0x67, 0x68, 0x70, 0x5f, 0x32, 0x4d, 0x79, 0x4b, 0x66,
+      0x5a, 0x75, 0x6f, 0x4a, 0x4c, 0x33, 0x6a, 0x63, 0x73, 0x42, 0x34,
+      0x46, 0x48, 0x46, 0x5a, 0x52, 0x6f, 0x42, 0x46, 0x46, 0x61, 0x39,
+      0x70, 0x7a, 0x32, 0x31, 0x62, 0x51, 0x54, 0x42, 0x57)))
 
     if (!quiet) {
-      message("Using bundled GitHub PAT. Please add your own PAT to the env var `GITHUB_PAT`")
+      message("Using bundled GitHub PAT. Please add your own PAT using `gitcreds::gitcreds_set()`")
     }
 
     return(pat)
@@ -166,7 +181,7 @@ github_error <- function(res) {
         if (in_travis()) {
           "Add `GITHUB_PAT` to your travis settings as an encrypted variable."
         } else {
-          "Use `usethis::edit_r_environ()` and add the token as `GITHUB_PAT`."
+          "Use `gitcreds::gitcreds_set()` to add the token."
         }
       )
   } else if (identical(as.integer(res$status_code), 404L)) {

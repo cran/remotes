@@ -1,3 +1,16 @@
+# remotes 2.5.0
+
+* `install_github()` now uses credentials from the git
+  credential store, if `GITHUB_PAT` and `GITHUB_TOKEN` are not set.
+* The `Remotes` field in `DESCRIPTION` now accepts explicit package names:
+  `<pkgname>=<type>::<username>/<repo>` (#719, @heavywatal).
+* `dev_package_deps()` now works for packages with `Enhances` dependencies
+  (#711, @maksymiuks).
+* `install_dev()` now ignores a trailing slash (#692,  @krlmlr).
+* System requirements now support Ubuntu 22.04.
+* `local_package_deps()` now errors for non-existent directories
+  (#772, @MatthieuStigler).
+
 # remotes 2.4.2
 
 * Gábor Csárdi is now the maintainer.
@@ -23,7 +36,7 @@
 
 * `system_requirements()` now works as intended if only the `os` argument is used (@mdneuzerling, #609)
 
-* `remote_package_name.git2r_remote` and `remote_package_name.xgit_remote` now get correct package name from HTTP(S) git repo's `DESCRIPTION` file, and thus package's `DESCRIPTION` file's `Remotes` field could have `git::http(s)://<host>/<username>/<repo>[.git][@ref]` items that install remote packages using git via HTTP(S) protocal (@niheaven, #603).
+* `remote_package_name.git2r_remote` and `remote_package_name.xgit_remote` now get correct package name from HTTP(S) git repo's `DESCRIPTION` file, and thus package's `DESCRIPTION` file's `Remotes` field could have `git::http(s)://<host>/<username>/<repo>[.git][@ref]` items that install remote packages using git via HTTP(S) protocol (@niheaven, #603).
 
 # remotes 2.3.0
 
